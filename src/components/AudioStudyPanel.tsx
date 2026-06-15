@@ -51,7 +51,7 @@ export default function AudioStudyPanel({
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Alternating co-hosts speaking exact WP Certification, Gutenberg editor themes (Hidden from view)
+  // Alternating co-hosts speaking exact WP Certification, Gutenberg editor themes
   const podcastScript = [
     { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Welcome to our Free NotebookLM Deep Dive briefing on modern WordPress block themes. Today we are looking at theme.json styling specifications." },
     { host: "John Morris (Editor)", voiceGender: "male", text: "That is huge for WP Certification! By registering custom presets in theme.json, we lock global pallets and layout grids without raw CSS override bloat." },
@@ -439,7 +439,7 @@ export default function AudioStudyPanel({
                 <Progress value={podcastProgress} className="h-1.5 bg-slate-800" />
 
                 <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                  <span>Host {currentTurnIndex % 2 === 0 ? "Dr. Clara Hayes (Female)" : "John Morris (Male)"} speaking</span>
+                  <span>Host {currentTurnIndex % 2 === 0 ? "1 (Female)" : "2 (Male)"} speaking</span>
                   <span>{podcastProgress}%</span>
                 </div>
 
@@ -477,12 +477,30 @@ export default function AudioStudyPanel({
               </div>
             </Card>
 
-            {/* Note confirming scripts are hidden as instructed */}
-            <div className="p-3 bg-teal-50/20 dark:bg-slate-900 border border-teal-100 dark:border-slate-800 rounded-2xl">
-              <span className="text-[10px] font-extrabold text-teal-600 uppercase tracking-wide block mb-1">Interactive Co-Host Status</span>
-              <p className="text-[10px] text-slate-500 leading-normal">
-                Audio overview text scripts are completely hidden from view to maximize screen estate. Native speech synthesis engine alternates live between Clara (Academic) and John (Editor).
-              </p>
+            {/* Conversation Timeline */}
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase block">
+                Podcast Host Lineup
+              </span>
+              
+              {podcastScript.map((turn, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-3 rounded-2xl border transition-all ${
+                    idx === currentTurnIndex && isPlaying
+                      ? 'border-teal-500 bg-white shadow-sm'
+                      : 'border-slate-200/60 bg-slate-100/40 dark:bg-slate-900/40'
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-extrabold text-slate-800 dark:text-slate-200">{turn.host}</span>
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 border-slate-200">Voice {idx + 1}</Badge>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                    {turn.text}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         )}
