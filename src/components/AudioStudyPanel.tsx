@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -211,7 +212,7 @@ export default function AudioStudyPanel({
     }
   };
 
-  // SLIDE DECK PRESENTER STATE
+  // SLIDE PRESENTATION DECK WITH PENCIL BAR
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideData, setSlideData] = useState([
     { title: "WP theme.json Configurations", text: "modern Gutenberg themes use theme.json configurations to manage global palettes, typography sizes, layout presets, and spacing." },
@@ -682,7 +683,7 @@ export default function AudioStudyPanel({
 
                 <Button 
                   disabled={currentSlide + 1 === slideData.length} 
-                  onClick={() => setCurrentSlide(prev => prev + 1)} 
+                  onClick={() => setCurrentSlide(prev => prev - 1)} 
                   size="icon" 
                   variant="ghost" 
                   className="h-8 w-8 text-slate-500 rounded-full"
