@@ -27,6 +27,7 @@ export default function Index() {
   const [hasAudio, setHasAudio] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+  const [isIngestModalOpen, setIsIngestModalOpen] = useState(false);
 
   // Computed state for custom edited slides (so Pencil input feedback works)
   const [editedSlides, setEditedSlides] = useState<Slide[]>([]);
@@ -155,36 +156,8 @@ export default function Index() {
     setState(prev => ({ ...prev, researchMode: mode }));
   };
 
-  // Workspace controls
   const handleSendMessage = (text: string) => {
-    const userMsg: ChatMessage = {
-      id: Math.random().toString(),
-      sender: 'user',
-      text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setState(prev => ({ ...prev, messages: [...prev.messages, userMsg] }));
-    setIsLoading(true);
-
-    setTimeout(() => {
-      let aiResponseText = `I have completed an instant review of your active sources in ${state.researchMode.toUpperCase()} mode. Since all sources are parsed client-side locally, I can confirm the context elements are mapped! Let me know if you would like me to compile a comprehensive dossier or save this to your notes.`;
-      
-      if (state.researchMode === 'deep') {
-        aiResponseText = `[DEEP RESEARCH SYNTHESIS DOSSIER]\n\nContext grounded strictly in checked documents.\n\nGenerated with 100% free client processing.`;
-      }
-
-      const aiMsg: ChatMessage = {
-        id: Math.random().toString(),
-        sender: 'ai',
-        text: aiResponseText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setState(prev => ({ ...prev, messages: [...prev.messages, aiMsg] }));
-      setIsLoading(false);
-      showSuccess("Synthesis complete!");
-    }, 1500);
+    // Legacy support (now handled intelligently directly inside grounded local conversational threads)
   };
 
   const handleAddNote = (title: string, content: string) => {
@@ -340,12 +313,20 @@ export default function Index() {
           {/* Interactive central Workspace panel */}
           <div className="flex-1 min-h-0">
             <WorkspacePanel
+              sources={state.sources}
               activeNotes={state.notes}
-              messages={state.messages}
-              onSendMessage={handleSendMessage}
               onAddNote={handleAddNote}
               onDeleteNote={handleDeleteNote}
               onUpdateNote={handleUpdateNote}
+              onAddSourceClick={() => {
+                // Triggers clicking the '+ Add Source' button in the Left Panel natively
+                const addBtn = document.querySelector('[role="dialog"]') || document.querySelector('button[class*="bg-teal-650"], button[class*="bg-teal-600"]');
+                if (addBtn instanceof HTMLElement) {
+                  addBtn.click();
+                } else {
+                  showSuccess("Click '+ Add Source' in the left panel to begin ingestion!");
+                }
+              }}
               isLoading={isLoading}
             />
           </div>
