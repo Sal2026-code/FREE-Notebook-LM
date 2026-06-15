@@ -1,19 +1,356 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+"use client";
 
-import { MadeWithDyad } from "@/components/made-with-dyad";
+import React, { useState, useEffect } from 'react';
+import Header from '@/components/Header';
+import SourcePanel, { Source } from '@/components/SourcePanel';
+import WorkspacePanel, { ChatMessage, Note } from '@/components/WorkspacePanel';
+import AudioStudyPanel, { Flashcard } from '@/components/AudioStudyPanel';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Toaster } from '@/components/ui/sonner';
+import { Files, Headphones, ChevronLeft, ChevronRight } from 'lucide-react';
+import { showSuccess, showError } from '@/utils/toast';
+import { loadNotebookState, saveNotebookState, NotebookState } from '@/utils/db';
 
-const Index = () => {
+export default function Index() {
+  const [state, setState] = useState<NotebookState>(loadNotebookState());
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>('1');
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasAudio, setHasAudio] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+
+  // Default flashcards
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([
+    {
+      id: 'f1',
+      question: 'What mechanism is the Transformer architecture built upon?',
+      answer: 'It relies entirely on multi-head self-attention mechanisms, eschewing standard recurrent or convolutional structures.'
+    },
+    {
+      id: 'f2',
+      question: 'What are the two primary quantum mechanics principles utilized in quantum computers?',
+      answer: 'Superposition (qubits in multiple states simultaneously) and Entanglement (correlated states for scalable parallel workflows).'
+    }
+  ]);
+
+  // Collapsible panel status
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
+
+  // Sync state to local storage whenever it changes
+  useEffect(() => {
+    saveNotebookState(state);
+  }, [state]);
+
+  const handleRenameTitle = (newTitle: string) => {
+    setState(prev => ({ ...prev, notebookTitle: newTitle }));
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    setState(prev => ({ ...prev, language: lang }));
+    showSuccess(`Language preference set to: ${lang.toUpperCase()}`);
+  };
+
+  // Export DB
+  const exportDatabase = () => {
+    const payload = JSON.stringify(state, null, 2);
+    navigator.clipboard.writeText(payload);
+    showSuccess("Database payload JSON copied to your clipboard!");
+  };
+
+  // Import DB
+  const importDatabase = (data: string) => {
+    try {
+      const parsed = JSON.parse(data) as NotebookState;
+      if (parsed.notebookTitle && Array.isArray(parsed.sources)) {
+        setState(parsed);
+        showSuccess("Import successful! Your local database instance is fully restored.");
+      } else {
+        showError("Invalid database backup structure.");
+      }
+    } catch (e) {
+      showError("Failed to parse DB import payload. Please check JSON syntax.");
+    }
+  };
+
+  // Add Source Ingestion
+  const handleAddSource = (newSource: Omit<Source, 'id' | 'addedAt' | 'wordCount'>) => {
+    const fresh: Source = {
+      ...newSource,
+      id: Math.random().toString(),
+      wordCount: newSource.content.split(/\s+/).filter(Boolean).length,
+      addedAt: new Date().toLocaleDateString(),
+      checked: true
+    };
+    setState(prev => ({
+      ...prev,
+      sources: [...prev.sources, fresh]
+    }));
+    setSelectedSourceId(fresh.id);
+  };
+
+  const handleDeleteSource = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      sources: prev.sources.filter(s => s.id !== id)
+    }));
+    if (selectedSourceId === id) {
+      setSelectedSourceId(state.sources.length > 1 ? state.sources[0].id : null);
+    }
+  };
+
+  const handleRenameSource = (id: string, newTitle: string) => {
+    setState(prev => ({
+      ...prev,
+      sources: prev.sources.map(s => s.id === id ? { ...s, title: newTitle } : s)
+    }));
+  };
+
+  const handleToggleCheckSource = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      sources: prev.sources.map(s => s.id === id ? { ...s, checked: !s.checked } : s)
+    }));
+  };
+
+  // Cluster algorithm: auto label folders if sources count >= 5
+  const handleAutoLabelFolders = () => {
+    if (state.sources.length < 5) {
+      showError("Requires at least 5 active documents to cluster folder labels automatically!");
+      return;
+    }
+    setState(prev => {
+      const updated = prev.sources.map((src, idx) => {
+        let folder = "General Reference Dossier";
+        if (src.type === 'pdf') folder = "Academic Research Papers";
+        else if (src.type === 'youtube' || src.type === 'url') folder = "Hyperlinks & Medias";
+        else if (idx % 2 === 0) folder = "Quantum Computing Studies";
+        return { ...src, folder };
+      });
+      return { ...prev, sources: updated };
+    });
+    showSuccess("Auto-Label Engine completed! Sources grouped into categorized folders.");
+  };
+
+  const handleChangeResearchMode = (mode: 'fast' | 'deep') => {
+    setState(prev => ({ ...prev, researchMode: mode }));
+  };
+
+  // Workspace controls
+  const handleSendMessage = (text: string) => {
+    const userMsg: ChatMessage = {
+      id: Math.random().toString(),
+      sender: 'user',
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setState(prev => ({ ...prev, messages: [...prev.messages, userMsg] }));
+    setIsLoading(true);
+
+    setTimeout(() => {
+      let aiResponseText = `I have completed an instant review of your active sources in ${state.researchMode.toUpperCase()} mode. Since all sources are parsed client-side locally, I can confirm attention parallelization structures allow full text context integration! Let me know if you would like me to compile a comprehensive dossier or save this to your notes.`;
+      
+      if (state.researchMode === 'deep') {
+        aiResponseText = `[DEEP RESEARCH SYNTHESIS DOSSIER]\n\nContext grounded strictly in checked documents.\n\nKey Core Pillars Analyzed:\n1. Parallel computing capacities & Transformers.\n2. Superposition bounds in next-generation computation architecture.\n\nGenerated with 100% free client processing.`;
+      }
+
+      const aiMsg: ChatMessage = {
+        id: Math.random().toString(),
+        sender: 'ai',
+        text: aiResponseText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setState(prev => ({ ...prev, messages: [...prev.messages, aiMsg] }));
+      setIsLoading(false);
+      showSuccess("Synthesis complete!");
+    }, 1500);
+  };
+
+  const handleAddNote = (title: string, content: string) => {
+    const fresh: Note = {
+      id: Math.random().toString(),
+      title,
+      content,
+      lastUpdated: 'Just now'
+    };
+    setState(prev => ({ ...prev, notes: [fresh, ...prev.notes] }));
+  };
+
+  const handleDeleteNote = (id: string) => {
+    setState(prev => ({ ...prev, notes: prev.notes.filter(n => n.id !== id) }));
+  };
+
+  const handleUpdateNote = (id: string, content: string) => {
+    setState(prev => ({
+      ...prev,
+      notes: prev.notes.map(n => n.id === id ? { ...n, content, lastUpdated: 'Just now' } : n)
+    }));
+  };
+
+  const handleGenerateAudio = () => {
+    setIsGeneratingAudio(true);
+    setTimeout(() => {
+      setIsGeneratingAudio(false);
+      setHasAudio(true);
+      showSuccess("Co-host Audio deep dive synthesised!");
+    }, 2000);
+  };
+
+  const handleGenerateFlashcards = () => {
+    setIsGeneratingFlashcards(true);
+    setTimeout(() => {
+      setFlashcards([
+        {
+          id: 'f1-new',
+          question: 'What is the purpose of the Deep Research Toggle?',
+          answer: 'It instructs the client engine to construct a multi-document synthesis dossier instead of standard Fast Q&A.'
+        },
+        ...flashcards
+      ]);
+      setIsGeneratingFlashcards(false);
+      showSuccess("New Flashcards integrated!");
+    }, 1500);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">
-          Start building your amazing project here!
-        </p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col antialiased">
+      <Header 
+        title={state.notebookTitle}
+        onRenameTitle={handleRenameTitle}
+        language={state.language}
+        onLanguageChange={handleLanguageChange}
+        exportDatabase={exportDatabase}
+        importDatabase={importDatabase}
+      />
+
+      {/* Spacing below 56px fixed header */}
+      <div className="flex-1 pt-[56px] flex overflow-hidden relative h-[calc(100vh-56px)]">
+        
+        {/* Left Pane: Sources */}
+        <div className={`hidden lg:block transition-all duration-300 ease-in-out shrink-0 border-r border-slate-200 dark:border-slate-800 ${
+          leftOpen ? 'w-[22%]' : 'w-0 overflow-hidden'
+        }`}>
+          <SourcePanel
+            sources={state.sources}
+            selectedSourceId={selectedSourceId}
+            onSelectSource={setSelectedSourceId}
+            onAddSource={handleAddSource}
+            onDeleteSource={handleDeleteSource}
+            onRenameSource={handleRenameSource}
+            onToggleCheckSource={handleToggleCheckSource}
+            onAutoLabelFolders={handleAutoLabelFolders}
+            researchMode={state.researchMode}
+            onChangeResearchMode={handleChangeResearchMode}
+          />
+        </div>
+
+        {/* Center Pane: Workspace & Responsive drawers */}
+        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 relative h-full">
+          
+          {/* Tablet & Mobile responsive control ribbons */}
+          <div className="lg:hidden p-3 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="rounded-full text-slate-600 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 flex items-center gap-1.5 text-xs">
+                  <Files className="w-3.5 h-3.5 text-teal-600" />
+                  Sources ({state.sources.length})
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-80 bg-white dark:bg-slate-900">
+                <SourcePanel
+                  sources={state.sources}
+                  selectedSourceId={selectedSourceId}
+                  onSelectSource={setSelectedSourceId}
+                  onAddSource={handleAddSource}
+                  onDeleteSource={handleDeleteSource}
+                  onRenameSource={handleRenameSource}
+                  onToggleCheckSource={handleToggleCheckSource}
+                  onAutoLabelFolders={handleAutoLabelFolders}
+                  researchMode={state.researchMode}
+                  onChangeResearchMode={handleChangeResearchMode}
+                />
+              </SheetContent>
+            </Sheet>
+
+            <span className="font-extrabold text-xs text-teal-600 truncate max-w-[150px]">
+              {state.notebookTitle}
+            </span>
+
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="rounded-full text-slate-600 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 flex items-center gap-1.5 text-xs">
+                  <Headphones className="w-3.5 h-3.5 text-teal-600" />
+                  Studio
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="p-0 w-85 bg-slate-50 dark:bg-slate-900">
+                <AudioStudyPanel
+                  onGenerateAudio={handleGenerateAudio}
+                  isGeneratingAudio={isGeneratingAudio}
+                  hasAudio={hasAudio}
+                  flashcards={flashcards}
+                  onGenerateFlashcards={handleGenerateFlashcards}
+                  isGeneratingFlashcards={isGeneratingFlashcards}
+                />
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Desktop panel expand / collapse trigger knobs */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 z-30 hidden lg:block">
+            <button
+              onClick={() => setLeftOpen(!leftOpen)}
+              className="bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 hover:border-teal-500 p-1.5 rounded-r-xl shadow-md text-slate-500 hover:text-teal-600 transition-all"
+              title={leftOpen ? "Collapse Sources Panel" : "Expand Sources Panel"}
+            >
+              {leftOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 z-30 hidden lg:block">
+            <button
+              onClick={() => setRightOpen(!rightOpen)}
+              className="bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 hover:border-teal-500 p-1.5 rounded-l-xl shadow-md text-slate-500 hover:text-teal-600 transition-all"
+              title={rightOpen ? "Collapse Study Studio" : "Expand Study Studio"}
+            >
+              {rightOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {/* Interactive central Workspace panel */}
+          <div className="flex-1 min-h-0">
+            <WorkspacePanel
+              activeNotes={state.notes}
+              messages={state.messages}
+              onSendMessage={handleSendMessage}
+              onAddNote={handleAddNote}
+              onDeleteNote={handleDeleteNote}
+              onUpdateNote={handleUpdateNote}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Right Pane: Audio Deep Dive */}
+        <div className={`hidden lg:block transition-all duration-300 ease-in-out shrink-0 border-l border-slate-200 dark:border-slate-800 ${
+          rightOpen ? 'w-[28%]' : 'w-0 overflow-hidden'
+        }`}>
+          <AudioStudyPanel
+            onGenerateAudio={handleGenerateAudio}
+            isGeneratingAudio={isGeneratingAudio}
+            hasAudio={hasAudio}
+            flashcards={flashcards}
+            onGenerateFlashcards={handleGenerateFlashcards}
+            isGeneratingFlashcards={isGeneratingFlashcards}
+          />
+        </div>
+
       </div>
-      <MadeWithDyad />
+
+      <Toaster position="top-center" richColors />
     </div>
   );
-};
-
-export default Index;
+}
