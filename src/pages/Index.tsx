@@ -14,23 +14,23 @@ import { loadNotebookState, saveNotebookState, NotebookState } from '@/utils/db'
 
 export default function Index() {
   const [state, setState] = useState<NotebookState>(loadNotebookState());
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>('1');
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>('src-plan');
   const [isLoading, setIsLoading] = useState(false);
   const [hasAudio, setHasAudio] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
 
-  // Default flashcards
+  // Default flashcards aligned to WordPress Certification and theme.json
   const [flashcards, setFlashcards] = useState<Flashcard[]>([
     {
       id: 'f1',
-      question: 'What mechanism is the Transformer architecture built upon?',
-      answer: 'It relies entirely on multi-head self-attention mechanisms, eschewing standard recurrent or convolutional structures.'
+      question: 'What is the purpose of theme.json in modern WordPress Editor themes?',
+      answer: 'It centralizes block-level configurations like custom spacing presets, typography sizes, layout boundaries, and global color palettes.'
     },
     {
       id: 'f2',
-      question: 'What are the two primary quantum mechanics principles utilized in quantum computers?',
-      answer: 'Superposition (qubits in multiple states simultaneously) and Entanglement (correlated states for scalable parallel workflows).'
+      question: 'Which Gutenberg metadata schema registers dynamic block render properties?',
+      answer: 'The block.json schema registers properties, stylesheets, edit components, and the server-side dynamic PHP callback.'
     }
   ]);
 
@@ -153,7 +153,7 @@ export default function Index() {
       let aiResponseText = `I have completed an instant review of your active sources in ${state.researchMode.toUpperCase()} mode. Since all sources are parsed client-side locally, I can confirm attention parallelization structures allow full text context integration! Let me know if you would like me to compile a comprehensive dossier or save this to your notes.`;
       
       if (state.researchMode === 'deep') {
-        aiResponseText = `[DEEP RESEARCH SYNTHESIS DOSSIER]\n\nContext grounded strictly in checked documents.\n\nKey Core Pillars Analyzed:\n1. Parallel computing capacities & Transformers.\n2. Superposition bounds in next-generation computation architecture.\n\nGenerated with 100% free client processing.`;
+        aiResponseText = `[DEEP RESEARCH SYNTHESIS DOSSIER]\n\nContext grounded strictly in checked documents.\n\nKey Core Pillars Analyzed:\n1. Spacing and global palette presets in theme.json.\n2. CPT registrations with show_in_rest enabled for dynamic API hooks.\n\nGenerated with 100% free client processing.`;
       }
 
       const aiMsg: ChatMessage = {
@@ -205,8 +205,8 @@ export default function Index() {
       setFlashcards([
         {
           id: 'f1-new',
-          question: 'What is the purpose of the Deep Research Toggle?',
-          answer: 'It instructs the client engine to construct a multi-document synthesis dossier instead of standard Fast Q&A.'
+          question: 'What is the purpose of registering custom rest_base in taxonomies?',
+          answer: 'It defines a custom Rest URL path to expose associated post terms natively to modern Gutenberg components.'
         },
         ...flashcards
       ]);
