@@ -51,11 +51,12 @@ export default function AudioStudyPanel({
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // Alternating co-hosts speaking exact WP Certification, Gutenberg editor themes
   const podcastScript = [
-    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Welcome to our Free NotebookLM Deep Dive briefing. Today we are looking at self-attention architectures and their incredible parallel performance boundaries." },
-    { host: "John Morris (Editor)", voiceGender: "male", text: "Right, Clara! It's wild that by avoiding sequential recurrence entirely, we can train these massive networks in under twelve hours." },
-    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Exactly, John. And when we map this to quantum computing frameworks, superposition unlocks parallel states that traditional silicon simply cannot touch." },
-    { host: "John Morris (Editor)", voiceGender: "male", text: "Fascinating bounds indeed. This completely changes how students and researchers parse big files client-side without costly server bills!" }
+    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Welcome to our Free NotebookLM Deep Dive briefing on modern WordPress block themes. Today we are looking at theme.json styling specifications." },
+    { host: "John Morris (Editor)", voiceGender: "male", text: "That is huge for WP Certification! By registering custom presets in theme.json, we lock global pallets and layout grids without raw CSS override bloat." },
+    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Indeed, John. And for dynamic blocks, configuring the php server-side render callback in block.json allows high-performance server integrations." },
+    { host: "John Morris (Editor)", voiceGender: "male", text: "Right, Clara! It aligns directly with WordPress REST API and CPT registration specs. Modern block editor development has never been this clear." }
   ];
 
   // Initialize Speech Synthesis
@@ -151,6 +152,19 @@ export default function AudioStudyPanel({
   const [isFlipped, setIsFlipped] = useState(false);
   const [flashScore, setFlashScore] = useState({ gotIt: 0, missed: 0 });
 
+  const customFlashcards = [
+    {
+      id: 'f1',
+      question: "What is the purpose of theme.json in modern WordPress editor block themes?",
+      answer: "It centralizes structural options like custom typography presets, palettes, padding blocks, and dynamic styles on client containers."
+    },
+    {
+      id: 'f2',
+      question: "Which file structure handles metadata registration for custom Gutenberg blocks?",
+      answer: "block.json registers the properties, scripts, block styles, attributes, and render callbacks."
+    }
+  ];
+
   const handleFlashScore = (type: 'gotIt' | 'missed') => {
     setFlashScore(prev => ({
       ...prev,
@@ -158,7 +172,7 @@ export default function AudioStudyPanel({
     }));
     showSuccess(type === 'gotIt' ? "Marked as mastered!" : "Marked for later review.");
     setIsFlipped(false);
-    if (currentCardIndex + 1 < flashcards.length) {
+    if (currentCardIndex + 1 < customFlashcards.length) {
       setCurrentCardIndex(currentCardIndex + 1);
     } else {
       showSuccess("Flashcard deck complete!");
@@ -173,13 +187,13 @@ export default function AudioStudyPanel({
 
   const quizQuestions = [
     {
-      question: "Which component of the Transformer replaces sequence recurrence?",
+      question: "Which function registers Custom Post Types (CPT) with standard REST API capabilities?",
       options: [
-        { id: 'a', text: "Convolution layers" },
-        { id: 'b', text: "Multi-Head Self-Attention layers" },
-        { id: 'c', text: "Standard LSTM gates" }
+        { id: 'a', text: "register_post_type() with show_in_rest set to true" },
+        { id: 'b', text: "register_block_type() with dynamic PHP renders" },
+        { id: 'c', text: "add_theme_support() with theme.json variables" }
       ],
-      correct: 'b'
+      correct: 'a'
     }
   ];
 
@@ -193,17 +207,16 @@ export default function AudioStudyPanel({
       setQuizScore(prev => prev + 1);
       showSuccess("Correct answer! Beautiful synthesis score.");
     } else {
-      showError("Incorrect. Recheck your source documents.");
+      showError("Incorrect. Recheck your WordPress developer study guide.");
     }
   };
 
   // SLIDE DECK PRESENTER STATE
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPresenterMode, setIsPresenterMode] = useState(false);
   const [slideData, setSlideData] = useState([
-    { title: "Parallel Architectures", text: "Transformers bypass step-by-step sequential processing by modeling global alignment directly." },
-    { title: "Qubit Matrix Dynamics", text: "Quantum systems exploit entangled gates to achieve simultaneous superposition parameters." },
-    { title: "Client-side Grounding", text: "IndexedDB structures keep absolute $0.00 sandbox processing secure inside your local browser." }
+    { title: "WP theme.json Configurations", text: "modern Gutenberg themes use theme.json configurations to manage global palettes, typography sizes, layout presets, and spacing." },
+    { title: "Dynamic Block Renders", text: "PHP register_block_type callback allows server-side template render structures matching modern custom APIs." },
+    { title: "WP Certification CPT and API", text: "Custom Post Types registered with show_in_rest enabled are fully supported by standard Gutenberg Block Editors." }
   ]);
   const [pencilFeedback, setPencilFeedback] = useState("");
 
@@ -271,7 +284,7 @@ export default function AudioStudyPanel({
           <div className="space-y-4">
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700 dark:text-slate-300">
               <LayoutGrid className="w-4 h-4 text-teal-600" />
-              PRESET SYNTHESIS COMMAND MATRIX
+              WP SPECIFICATION COMMAND MATRIX
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -311,15 +324,15 @@ export default function AudioStudyPanel({
                 {activePreset === 'accordion' && (
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="item-1" className="border-none">
-                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 1: Multi-Head Mechanics</AccordionTrigger>
+                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 1: theme.json specifications</AccordionTrigger>
                       <AccordionContent className="text-[11px] text-slate-500 leading-relaxed">
-                        Features parallel alignments allowing global paths bypassing LSTMs.
+                        Controls global styles, typography sizing, container max-widths, color choices, and custom layouts in WordPress Gutenberg.
                       </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="item-2" className="border-none">
-                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 2: Parallel Sequences</AccordionTrigger>
+                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 2: CPT show_in_rest integration</AccordionTrigger>
                       <AccordionContent className="text-[11px] text-slate-500 leading-relaxed">
-                        Trains state-of-the-art weights in under twelve total active cycles.
+                        Enabling show_in_rest registers post endpoints, rendering content templates directly inside modern block interfaces.
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
@@ -328,8 +341,8 @@ export default function AudioStudyPanel({
                 {activePreset === 'faq' && (
                   <div className="space-y-2.5">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-800">Q: Why are recurrent layers avoided?</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">A: To eliminate sequence execution paths and support massive hardware parallelization.</p>
+                      <h4 className="text-xs font-bold text-slate-800">Q: Why register custom endpoints inside block schemas?</h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">A: To expose metadata values natively and sync ACF options with JS-based editor states.</p>
                     </div>
                   </div>
                 )}
@@ -337,12 +350,12 @@ export default function AudioStudyPanel({
                 {activePreset === 'grid' && (
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
                     <div className="p-2 bg-slate-50 rounded-lg">
-                      <strong className="block mb-0.5">Superposition</strong>
-                      Exist in both 0 & 1 states.
+                      <strong className="block mb-0.5">template hierarchy</strong>
+                      Resolves files like page-slug.php.
                     </div>
                     <div className="p-2 bg-slate-50 rounded-lg">
-                      <strong className="block mb-0.5">Entanglement</strong>
-                      Scales parallel computing curves.
+                      <strong className="block mb-0.5">ACF Fields</strong>
+                      Inject dynamic data templates.
                     </div>
                   </div>
                 )}
@@ -351,32 +364,32 @@ export default function AudioStudyPanel({
                   <div className="space-y-3 relative pl-4 border-l border-teal-200">
                     <div className="relative">
                       <span className="absolute -left-5.5 top-0.5 w-3 h-3 rounded-full bg-teal-500" />
-                      <strong className="text-[11px] block">Hour 1: Initial Ingestion</strong>
-                      <span className="text-[10px] text-slate-500">File text blocks chunked client-side.</span>
+                      <strong className="text-[11px] block">Block Init (PHP)</strong>
+                      <span className="text-[10px] text-slate-500">register_block_type runs server configurations.</span>
                     </div>
                     <div className="relative">
                       <span className="absolute -left-5.5 top-0.5 w-3 h-3 rounded-full bg-teal-500" />
-                      <strong className="text-[11px] block">Hour 12: Optimal Convergence</strong>
-                      <span className="text-[10px] text-slate-500">Self-attention parameters finalize training.</span>
+                      <strong className="text-[11px] block">JS Render Layer</strong>
+                      <span className="text-[10px] text-slate-500">React block edit controls match editor screens.</span>
                     </div>
                   </div>
                 )}
 
                 {activePreset === 'mindmap' && (
                   <div className="space-y-2 text-xs">
-                    <div className="font-bold text-teal-700">Root Concept: Superposition</div>
+                    <div className="font-bold text-teal-700">WordPress Gutenberg Theme</div>
                     <div className="pl-4 border-l border-slate-200 space-y-1">
-                      <div>├─ Qubit State Bounds</div>
-                      <div>└─ Hardware Accelerations</div>
+                      <div>├─ theme.json Style Presets</div>
+                      <div>└─ block.json Block Properties</div>
                     </div>
                   </div>
                 )}
 
                 {activePreset === 'report' && (
                   <div className="space-y-2">
-                    <span className="text-[9px] font-extrabold uppercase tracking-wide text-teal-600">CLIENT METADATA STUDY REPORT</span>
+                    <span className="text-[9px] font-extrabold uppercase tracking-wide text-teal-600">WP DEVELOPMENT AUDIT REPORT</span>
                     <p className="text-[11px] leading-relaxed text-slate-600">
-                      Grounded review confirms 100% database containment under sandboxed memory.
+                      Standardized post type and dynamic REST integrations conform strictly with high-level Certification templates.
                     </p>
                   </div>
                 )}
@@ -400,7 +413,7 @@ export default function AudioStudyPanel({
 
                 <div>
                   <h3 className="text-sm font-extrabold text-white tracking-wide leading-snug">
-                    Clara & John Deep Dive Podcast
+                    WP Certification Deep Dive Podcast
                   </h3>
                   <p className="text-slate-400 text-[10px] leading-normal mt-1">
                     Alternates male and female voices client-side. Zero paywalls, zero cloud processing latency.
@@ -503,7 +516,7 @@ export default function AudioStudyPanel({
               </div>
             </div>
 
-            {/* Card Matrix viewport wrapper */}
+            {/* Card Matrix flip animation */}
             <div 
               onClick={() => setIsFlipped(!isFlipped)}
               className="relative w-full h-52 cursor-pointer [perspective:1000px] group"
@@ -518,7 +531,7 @@ export default function AudioStudyPanel({
                   <div className="space-y-2">
                     <span className="text-[9px] font-extrabold tracking-wider text-teal-600 uppercase">Flash Question</span>
                     <p className="text-slate-800 dark:text-slate-200 font-bold text-xs leading-relaxed">
-                      {flashcards[currentCardIndex]?.question}
+                      {customFlashcards[currentCardIndex]?.question}
                     </p>
                   </div>
                   <span className="text-[9px] font-bold text-slate-400 self-end">Click card to reveal answer</span>
@@ -529,7 +542,7 @@ export default function AudioStudyPanel({
                   <div className="space-y-2">
                     <span className="text-[9px] font-extrabold tracking-wider text-teal-200 uppercase">Answer Key Details</span>
                     <p className="text-white font-bold text-xs leading-relaxed">
-                      {flashcards[currentCardIndex]?.answer}
+                      {customFlashcards[currentCardIndex]?.answer}
                     </p>
                   </div>
                   <span className="text-[9px] font-bold text-teal-200 self-end">Click card to flip back</span>
@@ -559,7 +572,7 @@ export default function AudioStudyPanel({
         {/* QUIZ SHEET WITH RADIO SELECTION */}
         {activeTab === 'quiz' && (
           <div className="space-y-4">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Grounding synthesis Exam</span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">WP Certification Exam</span>
 
             <Card className="p-5 bg-white dark:bg-slate-900 border border-slate-200/85 rounded-3xl space-y-4">
               <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 leading-relaxed">

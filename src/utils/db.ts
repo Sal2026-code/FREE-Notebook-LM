@@ -1,6 +1,5 @@
 "use client";
 
-// Simple state persistence layer for our 100% Free NotebookLM
 import { Source } from '@/components/SourcePanel';
 import { Note, ChatMessage } from '@/components/WorkspacePanel';
 
@@ -16,30 +15,41 @@ export interface NotebookState {
 }
 
 const DEFAULT_STATE: NotebookState = {
-  notebookTitle: "My First Quantum & AI Notebook",
+  notebookTitle: "Web Dev & WP Certification Notebook",
   sources: [
     {
-      id: '1',
-      title: 'Attention Is All You Need Paper Abstract',
+      id: 'src-plan',
+      title: 'Free NotebookLM Plan',
       type: 'pdf',
-      content: 'We propose Transformer, a model architecture eschewing recurrence and instead relying entirely on an attention mechanism to draw global dependencies between input and output. The Transformer allows for significantly more parallelization and can reach a new state of the art in translation quality after being trained for only twelve hours.',
-      wordCount: 56,
-      addedAt: '2025-05-15'
+      content: 'This document details the blueprint for Free NotebookLM. Key features include client-side secure sandboxing using browser IndexedDB. No server-side billing workflows or premiums exist. All uploads of PDF, DOCX, TXT, MD, EPUB, CSV, YouTube and more are supported. Generates study preset timelines, quizzes, 3D CSS flashcards with master metrics, and alternated dual-host browser speech synthesis podcast briefing audio overview panel.',
+      wordCount: 71,
+      addedAt: '2025-05-18',
+      folder: 'Notebook Specifications'
     },
     {
-      id: '2',
-      title: 'Quantum Computing Overview MIT Lecture',
-      type: 'text',
-      content: 'Quantum computing leverages quantum mechanics principles to compute in fundamentally unique ways. Superposition allows quantum bits (qubits) to exist in multiple states simultaneously, and Entanglement links qubit states to enable massive computational power breakthroughs.',
-      wordCount: 38,
-      addedAt: '2025-05-16'
+      id: 'src-notion-chat-1',
+      title: 'Web Dev Notion Chat (Gutenberg & theme.json)',
+      type: 'pdf',
+      content: 'Discussion on WordPress Certification (WP Certification) and modern block theme architectures. Highlights theme.json files controlling spacing, global palette, layout presets, and custom CSS variables. Explains block-level locks, Gutenberg dynamic block rendering using PHP, block.json configurations, standard template hierarchy structure, and custom React-based blocks for the WordPress Editor.',
+      wordCount: 57,
+      addedAt: '2025-05-18',
+      folder: 'WordPress Study Guides'
+    },
+    {
+      id: 'src-notion-chat-2',
+      title: 'Web Dev Notion Chat Pages (API & CPT)',
+      type: 'pdf',
+      content: 'Covers Advanced Custom Fields (ACF) integration, registering Custom Post Types (CPT) with rest_base enabled, custom REST API endpoints, custom template hierarchies like page-{slug}.php, taxonomies, JS-based Gutenberg editor hooks, register_block_type, dynamic PHP server block render callbacks, and modern headless WordPress workflows.',
+      wordCount: 49,
+      addedAt: '2025-05-18',
+      folder: 'WordPress Study Guides'
     }
   ],
   notes: [
     {
       id: 'note-1',
-      title: 'Attention Mechanism summary',
-      content: 'Key idea: Replaces standard LSTM/RNN cells with multi-head self-attention, permitting faster global training runtimes.',
+      title: 'Gutenberg & theme.json Notes',
+      content: 'Gutenberg blocks require block.json registering. Global typography, custom color palette presets, and container widths are defined in theme.json.',
       lastUpdated: '10 mins ago'
     }
   ],
@@ -47,7 +57,7 @@ const DEFAULT_STATE: NotebookState = {
     {
       id: 'm1',
       sender: 'ai',
-      text: "Welcome to Free NotebookLM! I've loaded your default papers on Attention Mechanisms and Quantum Computing. Ask me to explain a concept or generate a summary podcast brief in the right pane.",
+      text: "Hello! I have loaded your new study materials on WP Certification, Web Dev Notion Chat, and the Free NotebookLM Plan. Ask me any question, and I will parse your files to compile grounded answers with direct citations!",
       timestamp: 'Just now'
     }
   ],
@@ -60,7 +70,15 @@ export function loadNotebookState(): NotebookState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      // Ensure our default sources are merged if not exists to facilitate smooth testing of new documents
+      if (parsed && Array.isArray(parsed.sources)) {
+        const hasNewDocs = parsed.sources.some((s: any) => s.id === 'src-notion-chat-1');
+        if (!hasNewDocs) {
+          parsed.sources = [...DEFAULT_STATE.sources, ...parsed.sources.filter((s: any) => s.id !== '1' && s.id !== '2')];
+        }
+        return parsed;
+      }
     }
   } catch (e) {
     console.error("Failed to load state from localStorage:", e);

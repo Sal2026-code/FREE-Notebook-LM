@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, FileText, Link, AlignLeft, Trash2, Search, Sparkles, BookOpenCheck, 
   ChevronDown, ChevronRight, Eye, Folder, Sliders, Laptop, FolderPlus, Globe, Cloud, MoreVertical, Edit, FileCode
@@ -64,10 +64,37 @@ export default function SourcePanel({
 
   // Preview Drawer state
   const [previewSource, setPreviewSource] = useState<Source | null>(null);
-  
+  const [highlightText, setHighlightText] = useState("");
+  const [isHighlightFlashing, setIsHighlightFlashing] = useState(false);
+
   // Inline rename state
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Citation Click listener
+  useEffect(() => {
+    const handleHighlight = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { sourceId, textToHighlight } = customEvent.detail;
+      const matchingSource = sources.find(s => s.id === sourceId);
+      if (matchingSource) {
+        onSelectSource(sourceId);
+        setPreviewSource(matchingSource);
+        setHighlightText(textToHighlight);
+        setIsHighlightFlashing(true);
+        setTimeout(() => {
+          setIsHighlightFlashing(false);
+        }, 2200);
+      }
+    };
+
+    window.addEventListener('highlight-source-segment', handleHighlight);
+    return () => {
+      window.removeEventListener('highlight-source-segment', handleHighlight);
+    };
+  }, [sources, onSelectSource]);
 
   const handleAdd = (type: string) => {
     if (!newTitle.trim()) {
@@ -275,7 +302,7 @@ export default function SourcePanel({
       </div>
 
       {/* Sources Stream with Folder Accordion and auto-label engine */}
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4" ref={scrollContainerRef}>
         {sources.length >= 5 && (
           <Button 
             onClick={onAutoLabelFolders}
@@ -312,6 +339,7 @@ export default function SourcePanel({
                     {folders[folderName].map(source => (
                       <div
                         key={source.id}
+                        id={`source-card-${source.id}`}
                         onClick={() => onSelectSource(source.id)}
                         className={`group relative p-2 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
                           selectedSourceId === source.id
@@ -384,6 +412,7 @@ export default function SourcePanel({
             {unassigned.map(source => (
               <div
                 key={source.id}
+                id={`source-card-${source.id}`}
                 onClick={() => onSelectSource(source.id)}
                 className={`group relative p-2.5 rounded-2xl border flex items-center gap-2.5 cursor-pointer transition-all ${
                   selectedSourceId === source.id
@@ -395,7 +424,7 @@ export default function SourcePanel({
                   checked={!!source.checked}
                   onCheckedChange={() => onToggleCheckSource(source.id)}
                   onClick={(e) => e.stopPropagation()}
-                  className="border-slate-300 dark:border-slate-700 data-[state=checked]:bg-teal-600"
+                  className="border-slate-300 dark:border-slate-750 data-[state=checked]:bg-teal-600"
                 />
                 <div className="shrink-0">{getIconForType(source.type)}</div>
                 
@@ -496,7 +525,7 @@ export default function SourcePanel({
         </div>
       </div>
 
-      {/* Raw text preview eye drawer */}
+      {/* Raw text preview eye drawer with scroll trigger & highlight flash */}
       <Sheet open={!!previewSource} onOpenChange={(open) => !open && setPreviewSource(null)}>
         <SheetContent side="left" className="w-[380px] bg-white dark:bg-slate-950 p-6 flex flex-col h-full border-r border-slate-200 dark:border-slate-800 text-left">
           <SheetHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -509,9 +538,24 @@ export default function SourcePanel({
             </SheetDescription>
           </SheetHeader>
           <ScrollArea className="flex-1 my-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-            <p className="text-[11px] font-mono leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-              {previewSource?.content}
-            </p>
+            {isHighlightFlashing ? (
+              <div className="text-[11px] font-mono leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                {previewSource?.content.split(highlightText).map((part, index, array) => (
+                  <React.Fragment key={index}>
+                    {part}
+                    {index < array.length - 1 && (
+                      <span className="bg-yellow-300 dark:bg-yellow-600 text-slate-900 px-1 py-0.5 rounded font-bold animate-pulse">
+                        {highlightText}
+                      </span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] font-mono leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                {previewSource?.content}
+              </p>
+            )}
           </ScrollArea>
           <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
             <Button size="sm" onClick={() => setPreviewSource(null)} className="bg-teal-600 hover:bg-teal-700 text-white rounded-full text-xs font-semibold">
