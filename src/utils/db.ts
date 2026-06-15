@@ -15,49 +15,14 @@ export interface NotebookState {
 }
 
 const DEFAULT_STATE: NotebookState = {
-  notebookTitle: "Web Dev & WP Certification Notebook",
-  sources: [
-    {
-      id: 'src-plan',
-      title: 'Free NotebookLM Plan',
-      type: 'pdf',
-      content: 'This document details the blueprint for Free NotebookLM. Key features include client-side secure sandboxing using browser IndexedDB. No server-side billing workflows or premiums exist. All uploads of PDF, DOCX, TXT, MD, EPUB, CSV, YouTube and more are supported. Generates study preset timelines, quizzes, 3D CSS flashcards with master metrics, and alternated dual-host browser speech synthesis podcast briefing audio overview panel.',
-      wordCount: 71,
-      addedAt: '2025-05-18',
-      folder: 'Notebook Specifications'
-    },
-    {
-      id: 'src-notion-chat-1',
-      title: 'Web Dev Notion Chat (Gutenberg & theme.json)',
-      type: 'pdf',
-      content: 'Discussion on WordPress Certification (WP Certification) and modern block theme architectures. Highlights theme.json files controlling spacing, global palette, layout presets, and custom CSS variables. Explains block-level locks, Gutenberg dynamic block rendering using PHP, block.json configurations, standard template hierarchy structure, and custom React-based blocks for the WordPress Editor.',
-      wordCount: 57,
-      addedAt: '2025-05-18',
-      folder: 'WordPress Study Guides'
-    },
-    {
-      id: 'src-notion-chat-2',
-      title: 'Web Dev Notion Chat Pages (API & CPT)',
-      type: 'pdf',
-      content: 'Covers Advanced Custom Fields (ACF) integration, registering Custom Post Types (CPT) with rest_base enabled, custom REST API endpoints, custom template hierarchies like page-{slug}.php, taxonomies, JS-based Gutenberg editor hooks, register_block_type, dynamic PHP server block render callbacks, and modern headless WordPress workflows.',
-      wordCount: 49,
-      addedAt: '2025-05-18',
-      folder: 'WordPress Study Guides'
-    }
-  ],
-  notes: [
-    {
-      id: 'note-1',
-      title: 'Gutenberg & theme.json Notes',
-      content: 'Gutenberg blocks require block.json registering. Global typography, custom color palette presets, and container widths are defined in theme.json.',
-      lastUpdated: '10 mins ago'
-    }
-  ],
+  notebookTitle: "My Custom Study Notebook",
+  sources: [],
+  notes: [],
   messages: [
     {
-      id: 'm1',
+      id: 'm-init',
       sender: 'ai',
-      text: "Hello! I have loaded your new study materials on WP Certification, Web Dev Notion Chat, and the Free NotebookLM Plan. Ask me any question, and I will parse your files to compile grounded answers with direct citations!",
+      text: "Welcome to your secure local Notebook! Please click '+ Add Source' on the left to upload any custom text documents, articles, transcripts, or specifications. All data is parsed and stored entirely inside your local browser sandbox.",
       timestamp: 'Just now'
     }
   ],
@@ -71,12 +36,7 @@ export function loadNotebookState(): NotebookState {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Ensure our default sources are merged if not exists to facilitate smooth testing of new documents
       if (parsed && Array.isArray(parsed.sources)) {
-        const hasNewDocs = parsed.sources.some((s: any) => s.id === 'src-notion-chat-1');
-        if (!hasNewDocs) {
-          parsed.sources = [...DEFAULT_STATE.sources, ...parsed.sources.filter((s: any) => s.id !== '1' && s.id !== '2')];
-        }
         return parsed;
       }
     }
@@ -93,4 +53,141 @@ export function saveNotebookState(state: NotebookState) {
   } catch (e) {
     console.error("Failed to save state to localStorage:", e);
   }
+}
+
+// Client-side heuristic parser to generate dynamic flashcards from any loaded source text
+export function generateDynamicFlashcards(sources: Source[]): Array<{ id: string; question: string; answer: string }> {
+  const activeSources = sources.filter(s => s.checked !== false);
+  if (activeSources.length === 0) {
+    return [
+      {
+        id: 'no-source-1',
+        question: "How do I generate interactive flashcards?",
+        answer: "Please upload and check at least one source file in the left panel to automatically extract key concepts!"
+      }
+    ];
+  }
+
+  const cards: Array<{ id: string; question: string; answer: string }> = [];
+  activeSources.forEach((src, sIdx) => {
+    const sentences = src.content
+      .split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 25);
+    
+    // Pick up to 3 interesting sentences to form flashcards
+    const sampleSentences = sentences.slice(0, 3);
+    sampleSentences.forEach((sentence, idx) => {
+      // Create a basic concept question
+      const words = sentence.split(/\s+/);
+      const subject = words.slice(0, 3).join(" ");
+      cards.push({
+        id: `card-${src.id}-${idx}`,
+        question: `Based on "${src.title}", what can you tell us about "${subject}..."?`,
+        answer: sentence + "."
+      });
+    });
+  });
+
+  return cards;
+}
+
+// Client-side heuristic parser to generate dynamic quiz questions
+export interface QuizQuestion {
+  question: string;
+  options: Array<{ id: string; text: string }>;
+  correct: string;
+}
+
+export function generateDynamicQuizzes(sources: Source[]): QuizQuestion[] {
+  const activeSources = sources.filter(s => s.checked !== false);
+  if (activeSources.length === 0) {
+    return [
+      {
+        question: "Are there any study documents active for your test?",
+        options: [
+          { id: 'a', text: "No, please upload source files first." },
+          { id: 'b', text: "Yes, but they are unchecked." }
+        ],
+        correct: 'a'
+      }
+    ];
+  }
+
+  const quizzes: QuizQuestion[] = [];
+  activeSources.forEach((src) => {
+    const sentences = src.content
+      .split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 40);
+
+    if (sentences.length > 0) {
+      const sentence = sentences[0];
+      const words = sentence.split(/\s+/);
+      const keySnippet = words.slice(0, Math.min(5, words.length)).join(" ");
+      const answerSnippet = words.slice(Math.max(0, words.length - 8)).join(" ");
+
+      quizzes.push({
+        question: `According to "${src.title}", complete this statement: "${keySnippet} ... ?"`,
+        options: [
+          { id: 'a', text: `... ${answerSnippet}.` },
+          { id: 'b', text: "... is not mentioned in the context." },
+          { id: 'c', text: "... is fully deprecated in the specification." }
+        ],
+        correct: 'a'
+      });
+    }
+  });
+
+  return quizzes.length > 0 ? quizzes : [
+    {
+      question: "Are there any study documents active for your test?",
+      options: [
+        { id: 'a', text: "No, please upload source files first." },
+        { id: 'b', text: "Yes, but they are unchecked." }
+      ],
+      correct: 'a'
+    }
+  ];
+}
+
+// Client-side heuristic parser to generate dynamic presentation slides
+export interface Slide {
+  title: string;
+  text: string;
+}
+
+export function generateDynamicSlides(sources: Source[]): Slide[] {
+  const activeSources = sources.filter(s => s.checked !== false);
+  if (activeSources.length === 0) {
+    return [
+      {
+        title: "Welcome Slide",
+        text: "Please add your custom sources on the left. The slide presentation engine will automatically extract key concepts into a structured summary presentation!"
+      }
+    ];
+  }
+
+  const slides: Slide[] = [];
+  activeSources.forEach((src) => {
+    const paragraphs = src.content
+      .split(/\n+/)
+      .map(p => p.trim())
+      .filter(p => p.length > 50);
+
+    const slideContent = paragraphs.slice(0, 2);
+    slideContent.forEach((para, idx) => {
+      slides.push({
+        title: `${src.title} - Highlight Part ${idx + 1}`,
+        text: para.length > 180 ? para.slice(0, 180) + "..." : para
+      });
+    });
+  });
+
+  return slides.length > 0 ? slides : [
+    {
+      title: "Active Document Summary",
+      text: `We have loaded your custom document "${activeSources[0].title}". Explore the interactive chat panel, study guides, or co-host podcast briefings to synthesize your data.`
+    }
+  ];
 }

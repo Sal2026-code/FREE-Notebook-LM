@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header';
 import SourcePanel, { Source } from '@/components/SourcePanel';
 import WorkspacePanel, { ChatMessage, Note } from '@/components/WorkspacePanel';
@@ -10,38 +10,56 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
 import { Files, Headphones, ChevronLeft, ChevronRight } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { loadNotebookState, saveNotebookState, NotebookState } from '@/utils/db';
+import { 
+  loadNotebookState, 
+  saveNotebookState, 
+  NotebookState, 
+  generateDynamicFlashcards, 
+  generateDynamicQuizzes, 
+  generateDynamicSlides,
+  Slide
+} from '@/utils/db';
 
 export default function Index() {
   const [state, setState] = useState<NotebookState>(loadNotebookState());
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>('src-plan');
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasAudio, setHasAudio] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
 
-  // Default flashcards aligned to WordPress Certification and theme.json
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([
-    {
-      id: 'f1',
-      question: 'What is the purpose of theme.json in modern WordPress Editor themes?',
-      answer: 'It centralizes block-level configurations like custom spacing presets, typography sizes, layout boundaries, and global color palettes.'
-    },
-    {
-      id: 'f2',
-      question: 'Which Gutenberg metadata schema registers dynamic block render properties?',
-      answer: 'The block.json schema registers properties, stylesheets, edit components, and the server-side dynamic PHP callback.'
-    }
-  ]);
-
-  // Collapsible panel status
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  // Computed state for custom edited slides (so Pencil input feedback works)
+  const [editedSlides, setEditedSlides] = useState<Slide[]>([]);
 
   // Sync state to local storage whenever it changes
   useEffect(() => {
     saveNotebookState(state);
   }, [state]);
+
+  // Set first loaded source as selected initially on boot (if sources exist)
+  useEffect(() => {
+    if (state.sources.length > 0 && !selectedSourceId) {
+      setSelectedSourceId(state.sources[0].id);
+    }
+  }, [state.sources]);
+
+  // Derive dynamic flashcards and quizzes based strictly on active/checked sources
+  const dynamicFlashcards = useMemo(() => {
+    return generateDynamicFlashcards(state.sources);
+  }, [state.sources]);
+
+  const dynamicQuizzes = useMemo(() => {
+    return generateDynamicQuizzes(state.sources);
+  }, [state.sources]);
+
+  const baseSlides = useMemo(() => {
+    return generateDynamicSlides(state.sources);
+  }, [state.sources]);
+
+  // Sync base generated slides into our editedSlides state
+  useEffect(() => {
+    setEditedSlides(baseSlides);
+  }, [baseSlides]);
 
   const handleRenameTitle = (newTitle: string) => {
     setState(prev => ({ ...prev, notebookTitle: newTitle }));
@@ -150,10 +168,10 @@ export default function Index() {
     setIsLoading(true);
 
     setTimeout(() => {
-      let aiResponseText = `I have completed an instant review of your active sources in ${state.researchMode.toUpperCase()} mode. Since all sources are parsed client-side locally, I can confirm attention parallelization structures allow full text context integration! Let me know if you would like me to compile a comprehensive dossier or save this to your notes.`;
+      let aiResponseText = `I have completed an instant review of your active sources in ${state.researchMode.toUpperCase()} mode. Since all sources are parsed client-side locally, I can confirm the context elements are mapped! Let me know if you would like me to compile a comprehensive dossier or save this to your notes.`;
       
       if (state.researchMode === 'deep') {
-        aiResponseText = `[DEEP RESEARCH SYNTHESIS DOSSIER]\n\nContext grounded strictly in checked documents.\n\nKey Core Pillars Analyzed:\n1. Spacing and global palette presets in theme.json.\n2. CPT registrations with show_in_rest enabled for dynamic API hooks.\n\nGenerated with 100% free client processing.`;
+        aiResponseText = `[DEEP RESEARCH SYNTHESIS DOSSIER]\n\nContext grounded strictly in checked documents.\n\nGenerated with 100% free client processing.`;
       }
 
       const aiMsg: ChatMessage = {
@@ -202,18 +220,14 @@ export default function Index() {
   const handleGenerateFlashcards = () => {
     setIsGeneratingFlashcards(true);
     setTimeout(() => {
-      setFlashcards([
-        {
-          id: 'f1-new',
-          question: 'What is the purpose of registering custom rest_base in taxonomies?',
-          answer: 'It defines a custom Rest URL path to expose associated post terms natively to modern Gutenberg components.'
-        },
-        ...flashcards
-      ]);
       setIsGeneratingFlashcards(false);
       showSuccess("New Flashcards integrated!");
     }, 1500);
   };
+
+  // Collapsible panel status
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col antialiased">
@@ -291,9 +305,12 @@ export default function Index() {
                   onGenerateAudio={handleGenerateAudio}
                   isGeneratingAudio={isGeneratingAudio}
                   hasAudio={hasAudio}
-                  flashcards={flashcards}
+                  flashcards={dynamicFlashcards}
+                  quizzes={dynamicQuizzes}
+                  slides={editedSlides}
                   onGenerateFlashcards={handleGenerateFlashcards}
                   isGeneratingFlashcards={isGeneratingFlashcards}
+                  onUpdateSlides={setEditedSlides}
                 />
               </SheetContent>
             </Sheet>
@@ -342,9 +359,12 @@ export default function Index() {
             onGenerateAudio={handleGenerateAudio}
             isGeneratingAudio={isGeneratingAudio}
             hasAudio={hasAudio}
-            flashcards={flashcards}
+            flashcards={dynamicFlashcards}
+            quizzes={dynamicQuizzes}
+            slides={editedSlides}
             onGenerateFlashcards={handleGenerateFlashcards}
             isGeneratingFlashcards={isGeneratingFlashcards}
+            onUpdateSlides={setEditedSlides}
           />
         </div>
 

@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { showSuccess, showError } from '@/utils/toast';
+import { QuizQuestion, Slide } from '@/utils/db';
 
 export interface Flashcard {
   id: string;
@@ -28,8 +29,11 @@ interface AudioStudyPanelProps {
   isGeneratingAudio: boolean;
   hasAudio: boolean;
   flashcards: Flashcard[];
+  quizzes: QuizQuestion[];
+  slides: Slide[];
   onGenerateFlashcards: () => void;
   isGeneratingFlashcards: boolean;
+  onUpdateSlides: (newSlides: Slide[]) => void;
 }
 
 export default function AudioStudyPanel({
@@ -37,8 +41,11 @@ export default function AudioStudyPanel({
   isGeneratingAudio,
   hasAudio,
   flashcards,
+  quizzes,
+  slides,
   onGenerateFlashcards,
-  isGeneratingFlashcards
+  isGeneratingFlashcards,
+  onUpdateSlides
 }: AudioStudyPanelProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'podcast' | 'flashcards' | 'quiz' | 'slides'>('presets');
   
@@ -52,12 +59,15 @@ export default function AudioStudyPanel({
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Alternating co-hosts speaking exact WP Certification, Gutenberg editor themes
+  // Dynamic alternating co-hosts speaking dialogue script computed from actual current slides/flashcards text
+  const primaryTopic = slides[0]?.title || "Active Local Context";
+  const primaryConceptSnippet = slides[0]?.text || "custom study items stored in browser.";
+
   const podcastScript = [
-    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Welcome to our Free NotebookLM Deep Dive briefing on modern WordPress block themes. Today we are looking at theme.json styling specifications." },
-    { host: "John Morris (Editor)", voiceGender: "male", text: "That is huge for WP Certification! By registering custom presets in theme.json, we lock global pallets and layout grids without raw CSS override bloat." },
-    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Indeed, John. And for dynamic blocks, configuring the php server-side render callback in block.json allows high-performance server integrations." },
-    { host: "John Morris (Editor)", voiceGender: "male", text: "Right, Clara! It aligns directly with WordPress REST API and CPT registration specs. Modern block editor development has never been this clear." }
+    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: `Welcome to our Free NotebookLM Deep Dive briefing on ${primaryTopic}. Today we are reviewing the extracted concepts.` },
+    { host: "John Morris (Editor)", voiceGender: "male", text: `Thanks, Clara! Yes, the materials confirm some fascinating points, specifically: ${primaryConceptSnippet.slice(0, 100)}...` },
+    { host: "Dr. Clara Hayes (Academic)", voiceGender: "female", text: "Fascinating indeed. And when analyzing the citations, everything is securely grounded on client browser indices." },
+    { host: "John Morris (Editor)", voiceGender: "male", text: "Absolutely, Clara. Let's practice with the quiz and flashcard metrics as we go through this session." }
   ];
 
   // Initialize Speech Synthesis
@@ -153,18 +163,10 @@ export default function AudioStudyPanel({
   const [isFlipped, setIsFlipped] = useState(false);
   const [flashScore, setFlashScore] = useState({ gotIt: 0, missed: 0 });
 
-  const customFlashcards = [
-    {
-      id: 'f1',
-      question: "What is the purpose of theme.json in modern WordPress editor block themes?",
-      answer: "It centralizes structural options like custom typography presets, palettes, padding blocks, and dynamic styles on client containers."
-    },
-    {
-      id: 'f2',
-      question: "Which file structure handles metadata registration for custom Gutenberg blocks?",
-      answer: "block.json registers the properties, scripts, block styles, attributes, and render callbacks."
-    }
-  ];
+  const activeCard = flashcards[currentCardIndex] || {
+    question: "How do I generate interactive flashcards?",
+    answer: "Please upload and check at least one source file in the left panel to automatically extract key concepts!"
+  };
 
   const handleFlashScore = (type: 'gotIt' | 'missed') => {
     setFlashScore(prev => ({
@@ -173,7 +175,7 @@ export default function AudioStudyPanel({
     }));
     showSuccess(type === 'gotIt' ? "Marked as mastered!" : "Marked for later review.");
     setIsFlipped(false);
-    if (currentCardIndex + 1 < customFlashcards.length) {
+    if (currentCardIndex + 1 < flashcards.length) {
       setCurrentCardIndex(currentCardIndex + 1);
     } else {
       showSuccess("Flashcard deck complete!");
@@ -182,21 +184,16 @@ export default function AudioStudyPanel({
   };
 
   // INTERACTIVE QUIZ STATE
+  const [activeQuizIndex, setActiveQuizIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState(0);
 
-  const quizQuestions = [
-    {
-      question: "Which function registers Custom Post Types (CPT) with standard REST API capabilities?",
-      options: [
-        { id: 'a', text: "register_post_type() with show_in_rest set to true" },
-        { id: 'b', text: "register_block_type() with dynamic PHP renders" },
-        { id: 'c', text: "add_theme_support() with theme.json variables" }
-      ],
-      correct: 'a'
-    }
-  ];
+  const activeQuiz = quizzes[activeQuizIndex] || {
+    question: "No active quizzes. Please ingest some sources.",
+    options: [{ id: 'a', text: "Awaiting source upload..." }],
+    correct: 'a'
+  };
 
   const handleQuizSubmit = () => {
     if (!selectedAnswer) {
@@ -204,30 +201,43 @@ export default function AudioStudyPanel({
       return;
     }
     setQuizSubmitted(true);
-    if (selectedAnswer === quizQuestions[0].correct) {
+    if (selectedAnswer === activeQuiz.correct) {
       setQuizScore(prev => prev + 1);
       showSuccess("Correct answer! Beautiful synthesis score.");
     } else {
-      showError("Incorrect. Recheck your WordPress developer study guide.");
+      showError("Incorrect. Recheck your uploaded study guide details.");
+    }
+  };
+
+  const handleNextQuiz = () => {
+    setQuizSubmitted(false);
+    setSelectedAnswer(null);
+    if (activeQuizIndex + 1 < quizzes.length) {
+      setActiveQuizIndex(activeQuizIndex + 1);
+    } else {
+      showSuccess("Quiz deck complete!");
+      setActiveQuizIndex(0);
     }
   };
 
   // SLIDE PRESENTATION DECK WITH PENCIL BAR
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [slideData, setSlideData] = useState([
-    { title: "WP theme.json Configurations", text: "modern Gutenberg themes use theme.json configurations to manage global palettes, typography sizes, layout presets, and spacing." },
-    { title: "Dynamic Block Renders", text: "PHP register_block_type callback allows server-side template render structures matching modern custom APIs." },
-    { title: "WP Certification CPT and API", text: "Custom Post Types registered with show_in_rest enabled are fully supported by standard Gutenberg Block Editors." }
-  ]);
   const [pencilFeedback, setPencilFeedback] = useState("");
+
+  const activeSlide = slides[currentSlide] || {
+    title: "Welcome Slide",
+    text: "Please add your custom sources on the left to dynamically render custom slides."
+  };
 
   const handleApplyPencilFeedback = () => {
     if (!pencilFeedback.trim()) return;
-    const updated = [...slideData];
-    updated[currentSlide].text = pencilFeedback;
-    setSlideData(updated);
-    setPencilFeedback("");
-    showSuccess("Slide text dynamically modified using Pencil UI Input bar!");
+    const updated = [...slides];
+    if (updated[currentSlide]) {
+      updated[currentSlide].text = pencilFeedback;
+      onUpdateSlides(updated);
+      setPencilFeedback("");
+      showSuccess("Slide text dynamically modified using Pencil UI Input bar!");
+    }
   };
 
   return (
@@ -285,7 +295,7 @@ export default function AudioStudyPanel({
           <div className="space-y-4">
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700 dark:text-slate-300">
               <LayoutGrid className="w-4 h-4 text-teal-600" />
-              WP SPECIFICATION COMMAND MATRIX
+              DYNAMIC COMMAND MATRIX
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -325,15 +335,15 @@ export default function AudioStudyPanel({
                 {activePreset === 'accordion' && (
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="item-1" className="border-none">
-                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 1: theme.json specifications</AccordionTrigger>
+                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 1: {primaryTopic}</AccordionTrigger>
                       <AccordionContent className="text-[11px] text-slate-500 leading-relaxed">
-                        Controls global styles, typography sizing, container max-widths, color choices, and custom layouts in WordPress Gutenberg.
+                        {primaryConceptSnippet}
                       </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="item-2" className="border-none">
-                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 2: CPT show_in_rest integration</AccordionTrigger>
+                      <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Section 2: Dynamic Insights</AccordionTrigger>
                       <AccordionContent className="text-[11px] text-slate-500 leading-relaxed">
-                        Enabling show_in_rest registers post endpoints, rendering content templates directly inside modern block interfaces.
+                        This summary panel automatically reads and maps your local browser-grounded IndexedDB strings dynamically.
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
@@ -342,21 +352,21 @@ export default function AudioStudyPanel({
                 {activePreset === 'faq' && (
                   <div className="space-y-2.5">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-800">Q: Why register custom endpoints inside block schemas?</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">A: To expose metadata values natively and sync ACF options with JS-based editor states.</p>
+                      <h4 className="text-xs font-bold text-slate-800">Q: What is the main theme of the active source?</h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">A: {primaryConceptSnippet}</p>
                     </div>
                   </div>
                 )}
 
                 {activePreset === 'grid' && (
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
-                    <div className="p-2 bg-slate-50 rounded-lg">
-                      <strong className="block mb-0.5">template hierarchy</strong>
-                      Resolves files like page-slug.php.
+                    <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                      <strong className="block mb-0.5">Topic</strong>
+                      {primaryTopic}
                     </div>
-                    <div className="p-2 bg-slate-50 rounded-lg">
-                      <strong className="block mb-0.5">ACF Fields</strong>
-                      Inject dynamic data templates.
+                    <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                      <strong className="block mb-0.5">Focus Highlight</strong>
+                      {primaryConceptSnippet.slice(0, 50)}...
                     </div>
                   </div>
                 )}
@@ -365,32 +375,32 @@ export default function AudioStudyPanel({
                   <div className="space-y-3 relative pl-4 border-l border-teal-200">
                     <div className="relative">
                       <span className="absolute -left-5.5 top-0.5 w-3 h-3 rounded-full bg-teal-500" />
-                      <strong className="text-[11px] block">Block Init (PHP)</strong>
-                      <span className="text-[10px] text-slate-500">register_block_type runs server configurations.</span>
+                      <strong className="text-[11px] block">Initial Study Context</strong>
+                      <span className="text-[10px] text-slate-500">{primaryTopic} loaded.</span>
                     </div>
                     <div className="relative">
                       <span className="absolute -left-5.5 top-0.5 w-3 h-3 rounded-full bg-teal-500" />
-                      <strong className="text-[11px] block">JS Render Layer</strong>
-                      <span className="text-[10px] text-slate-500">React block edit controls match editor screens.</span>
+                      <strong className="text-[11px] block">Extracted Summary</strong>
+                      <span className="text-[10px] text-slate-500">{primaryConceptSnippet.slice(0, 60)}...</span>
                     </div>
                   </div>
                 )}
 
                 {activePreset === 'mindmap' && (
                   <div className="space-y-2 text-xs">
-                    <div className="font-bold text-teal-700">WordPress Gutenberg Theme</div>
+                    <div className="font-bold text-teal-700">{primaryTopic}</div>
                     <div className="pl-4 border-l border-slate-200 space-y-1">
-                      <div>├─ theme.json Style Presets</div>
-                      <div>└─ block.json Block Properties</div>
+                      <div>├─ Local Document Nodes</div>
+                      <div>└─ Highlight: {primaryConceptSnippet.slice(0, 40)}...</div>
                     </div>
                   </div>
                 )}
 
                 {activePreset === 'report' && (
                   <div className="space-y-2">
-                    <span className="text-[9px] font-extrabold uppercase tracking-wide text-teal-600">WP DEVELOPMENT AUDIT REPORT</span>
+                    <span className="text-[9px] font-extrabold uppercase tracking-wide text-teal-600">DYNAMIC STUDY AUDIT REPORT</span>
                     <p className="text-[11px] leading-relaxed text-slate-600">
-                      Standardized post type and dynamic REST integrations conform strictly with high-level Certification templates.
+                      We parsed and structured {primaryTopic}. Insights conform strictly with client sandbox indices.
                     </p>
                   </div>
                 )}
@@ -414,7 +424,7 @@ export default function AudioStudyPanel({
 
                 <div>
                   <h3 className="text-sm font-extrabold text-white tracking-wide leading-snug">
-                    WP Certification Deep Dive Podcast
+                    {primaryTopic} Deep Dive Podcast
                   </h3>
                   <p className="text-slate-400 text-[10px] leading-normal mt-1">
                     Alternates male and female voices client-side. Zero paywalls, zero cloud processing latency.
@@ -489,7 +499,7 @@ export default function AudioStudyPanel({
                   key={idx}
                   className={`p-3 rounded-2xl border transition-all ${
                     idx === currentTurnIndex && isPlaying
-                      ? 'border-teal-500 bg-white shadow-sm'
+                      ? 'border-teal-500 bg-white dark:bg-slate-900 shadow-sm'
                       : 'border-slate-200/60 bg-slate-100/40 dark:bg-slate-900/40'
                   }`}
                 >
@@ -532,7 +542,7 @@ export default function AudioStudyPanel({
                   <div className="space-y-2">
                     <span className="text-[9px] font-extrabold tracking-wider text-teal-600 uppercase">Flash Question</span>
                     <p className="text-slate-800 dark:text-slate-200 font-bold text-xs leading-relaxed">
-                      {customFlashcards[currentCardIndex]?.question}
+                      {activeCard.question}
                     </p>
                   </div>
                   <span className="text-[9px] font-bold text-slate-400 self-end">Click card to reveal answer</span>
@@ -543,7 +553,7 @@ export default function AudioStudyPanel({
                   <div className="space-y-2">
                     <span className="text-[9px] font-extrabold tracking-wider text-teal-200 uppercase">Answer Key Details</span>
                     <p className="text-white font-bold text-xs leading-relaxed">
-                      {customFlashcards[currentCardIndex]?.answer}
+                      {activeCard.answer}
                     </p>
                   </div>
                   <span className="text-[9px] font-bold text-teal-200 self-end">Click card to flip back</span>
@@ -573,11 +583,14 @@ export default function AudioStudyPanel({
         {/* QUIZ SHEET WITH RADIO SELECTION */}
         {activeTab === 'quiz' && (
           <div className="space-y-4">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">WP Certification Exam</span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Active Synthesis Exam</span>
+              <Badge className="bg-teal-50 text-teal-700 text-[10px]">Score: {quizScore}</Badge>
+            </div>
 
             <Card className="p-5 bg-white dark:bg-slate-900 border border-slate-200/85 rounded-3xl space-y-4">
               <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 leading-relaxed">
-                {quizQuestions[0].question}
+                {activeQuiz.question}
               </h4>
 
               <RadioGroup 
@@ -585,13 +598,13 @@ export default function AudioStudyPanel({
                 onValueChange={(val) => !quizSubmitted && setSelectedAnswer(val)}
                 className="space-y-2"
               >
-                {quizQuestions[0].options.map((opt) => {
-                  let badgeStyle = "border-slate-200";
+                {activeQuiz.options.map((opt) => {
+                  let badgeStyle = "border-slate-200 dark:border-slate-800";
                   if (quizSubmitted) {
-                    if (opt.id === quizQuestions[0].correct) {
-                      badgeStyle = "border-emerald-500 bg-emerald-50 text-emerald-800";
+                    if (opt.id === activeQuiz.correct) {
+                      badgeStyle = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-400";
                     } else if (opt.id === selectedAnswer) {
-                      badgeStyle = "border-rose-500 bg-rose-50 text-rose-800";
+                      badgeStyle = "border-rose-500 bg-rose-50 dark:bg-rose-950/25 text-rose-800 dark:text-rose-400";
                     }
                   } else if (selectedAnswer === opt.id) {
                     badgeStyle = "border-teal-500 bg-teal-50/20";
@@ -620,14 +633,10 @@ export default function AudioStudyPanel({
                 </Button>
               ) : (
                 <Button 
-                  onClick={() => {
-                    setQuizSubmitted(false);
-                    setSelectedAnswer(null);
-                  }}
-                  variant="outline"
-                  className="w-full border-slate-200 text-slate-700 rounded-xl font-bold text-xs h-10"
+                  onClick={handleNextQuiz}
+                  className="w-full bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs h-10"
                 >
-                  Reset / Practice Again
+                  Next Quiz Question
                 </Button>
               )}
             </Card>
@@ -643,7 +652,7 @@ export default function AudioStudyPanel({
                 variant="outline" 
                 size="xs" 
                 onClick={() => {
-                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(slideData, null, 2));
+                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(slides, null, 2));
                   const downloadAnchor = document.createElement('a');
                   downloadAnchor.setAttribute("href", dataStr);
                   downloadAnchor.setAttribute("download", "slides_export.json");
@@ -654,21 +663,21 @@ export default function AudioStudyPanel({
                 }}
                 className="h-7 text-[10px] font-bold text-teal-600 border-teal-150 rounded-lg flex items-center gap-1"
               >
-                <Download className="w-3.5 h-3.5" /> PDF/Config
+                <Download className="w-3.5 h-3.5" /> Export Slides
               </Button>
             </div>
 
-            <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 rounded-3xl min-h-[160px] flex flex-col justify-between shadow-sm relative overflow-hidden">
+            <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl min-h-[160px] flex flex-col justify-between shadow-sm relative overflow-hidden">
               <div className="space-y-2">
-                <span className="text-[9px] font-extrabold tracking-wider text-teal-600 uppercase">Slide {currentSlide + 1} OF {slideData.length}</span>
-                <h3 className="font-bold text-xs text-slate-800 dark:text-slate-200">{slideData[currentSlide].title}</h3>
+                <span className="text-[9px] font-extrabold tracking-wider text-teal-600 uppercase">Slide {currentSlide + 1} OF {slides.length}</span>
+                <h3 className="font-bold text-xs text-slate-800 dark:text-slate-200">{activeSlide.title}</h3>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
-                  {slideData[currentSlide].text}
+                  {activeSlide.text}
                 </p>
               </div>
 
               {/* Navigator controls */}
-              <div className="flex justify-between items-center pt-3 border-t border-slate-100 mt-4">
+              <div className="flex justify-between items-center pt-3 border-t border-slate-150 dark:border-slate-800 mt-4">
                 <Button 
                   disabled={currentSlide === 0} 
                   onClick={() => setCurrentSlide(prev => prev - 1)} 
@@ -682,8 +691,8 @@ export default function AudioStudyPanel({
                 <span className="text-[10px] font-bold text-slate-400">Presenter Mode Active</span>
 
                 <Button 
-                  disabled={currentSlide + 1 === slideData.length} 
-                  onClick={() => setCurrentSlide(prev => prev - 1)} 
+                  disabled={currentSlide + 1 >= slides.length} 
+                  onClick={() => setCurrentSlide(prev => prev + 1)} 
                   size="icon" 
                   variant="ghost" 
                   className="h-8 w-8 text-slate-500 rounded-full"
@@ -694,7 +703,7 @@ export default function AudioStudyPanel({
             </Card>
 
             {/* PENCIL UI FEEDBACK INPUT BAR */}
-            <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 rounded-2xl space-y-2">
+            <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
               <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 block">
                 Pencil UI Feedback Text Input Bar
               </label>
