@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Headphones, Play, Pause, RotateCcw, Volume2, HelpCircle, 
   Map, FileText, Calendar, Compass, ChevronLeft, ChevronRight, Edit3, Check, CheckSquare, 
-  Settings2, Sliders, BookOpen, Clock, Activity, MessageSquare, ListFilter, Copy, Star, Lock
+  Settings2, Sliders, BookOpen, Clock, Activity, MessageSquare, ListFilter, Copy, Star, Lock,
+  Loader2, Mic2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,8 +16,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { showSuccess, showError } from '@/utils/toast';
-import { QuizQuestion, Slide, generateCoHostPodcastScript, compileStudyGuide, Source } from '@/utils/db';
+import { Slide, generateCoHostPodcastScript, compileStudyGuide, Source } from '@/utils/db';
 
 export interface Flashcard {
   id: string;
@@ -36,6 +38,13 @@ interface AudioStudyPanelProps {
   isGeneratingFlashcards: boolean;
   onUpdateSlides: (newSlides: Slide[]) => void;
 }
+
+const PRESET_DIRECTIVES = [
+  { label: "👶 Explain like I am 5", text: "explain it like I am 5" },
+  { label: "💻 Highly Technical", text: "deeply technical breakdown with developer details" },
+  { label: "🎭 Add Lighthearted Jokes", text: "keep it lighthearted and tell dad jokes" },
+  { label: "📊 Focus on Monetization", text: "focus heavily on monetization, market fit, and business plans" }
+];
 
 export default function AudioStudyPanel({
   onGenerateAudio,
@@ -58,6 +67,10 @@ export default function AudioStudyPanel({
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [podcastProgress, setPodcastProgress] = useState(0);
   const [playbackRate, setPlaybackRate] = useState<number>(1.05);
+
+  // Local simulated re-generation state for premium video feel
+  const [isLocalTuning, setIsLocalTuning] = useState(false);
+  const [tuningStep, setTuningStep] = useState("");
 
   // Premium NotebookLM Voice Selector configurations
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -191,13 +204,26 @@ export default function AudioStudyPanel({
     setIsPlaying(false);
     setCurrentLineIndex(0);
     setPodcastProgress(0);
-    showSuccess("Audio overview timeline reset.");
   };
 
-  const applyPodcastInstructions = () => {
-    setAppliedInstructions(podcastInstructions);
-    handleResetPodcast();
-    showSuccess("Re-synthesized dialogue co-hosts using custom focus instructions!");
+  const applyPodcastInstructions = (customText?: string) => {
+    const targetText = customText ?? podcastInstructions;
+    setIsLocalTuning(true);
+    setTuningStep("Directing host personas...");
+    
+    // Smooth transitions exactly like Google's audio overview customization panel
+    setTimeout(() => {
+      setTuningStep("Aligning conversational script context...");
+      setTimeout(() => {
+        setAppliedInstructions(targetText);
+        if (customText) {
+          setPodcastInstructions(customText);
+        }
+        handleResetPodcast();
+        setIsLocalTuning(false);
+        showSuccess("Co-host conversational parameters successfully re-tuned!");
+      }, 700);
+    }, 600);
   };
 
   // Flashcards state
@@ -412,147 +438,184 @@ export default function AudioStudyPanel({
             {/* TOOL 1: AUDIO PODCAST CO-HOST OVERVIEW (with premium voices & speeds) */}
             {activeTab === 'podcast' && (
               <div className="space-y-4">
-                <Card className="p-5 border-none shadow-sm bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl relative overflow-hidden">
-                  <div className="space-y-4 relative z-10">
-                    <div className="flex items-center justify-between">
-                      <Badge className="bg-teal-500 text-slate-900 border-none rounded-md px-2 py-0.5 font-bold text-[9px] uppercase">
-                        NotebookLM Audio Engine
-                      </Badge>
-                      <div className="flex items-center gap-1.5 text-teal-400 font-mono text-[9px]">
-                        <Volume2 className="w-3.5 h-3.5" />
-                        <span>PREMIUM DUAL-HOSTS</span>
+                
+                {isLocalTuning ? (
+                  <Card className="p-8 border-none bg-slate-900 text-white rounded-3xl flex flex-col items-center justify-center text-center space-y-3">
+                    <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
+                    <p className="text-xs font-bold text-slate-200">{tuningStep}</p>
+                  </Card>
+                ) : (
+                  <Card className="p-5 border-none shadow-sm bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl relative overflow-hidden">
+                    <div className="space-y-4 relative z-10">
+                      <div className="flex items-center justify-between">
+                        <Badge className="bg-teal-500 text-slate-900 border-none rounded-md px-2 py-0.5 font-bold text-[9px] uppercase">
+                          NotebookLM Audio Engine
+                        </Badge>
+                        <div className="flex items-center gap-1.5 text-teal-400 font-mono text-[9px]">
+                          <Volume2 className="w-3.5 h-3.5" />
+                          <span>PREMIUM DUAL-HOSTS</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <h3 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5">
-                        <Headphones className="w-4.5 h-4.5 text-teal-400" />
-                        Deep-Dive Overview Dialogue
-                      </h3>
-                      <p className="text-slate-400 text-[10px] leading-relaxed mt-1">
-                        Alternating Host 1 (Lead Specialist) and Host 2 (Interviewer) utilizing your browser's premium high-fidelity voices.
-                      </p>
-                    </div>
+                      <div>
+                        <h3 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5">
+                          <Headphones className="w-4.5 h-4.5 text-teal-400" />
+                          Deep-Dive Overview Dialogue
+                        </h3>
+                        {appliedInstructions && (
+                          <Badge className="bg-teal-950 text-teal-400 border border-teal-800 text-[9px] mt-1.5 font-semibold py-1 rounded-lg">
+                            Custom Focus: "{appliedInstructions}"
+                          </Badge>
+                        )}
+                        <p className="text-slate-400 text-[10px] leading-relaxed mt-1">
+                          Alternating Host 1 (Lead Specialist) and Host 2 (Interviewer) utilizing your browser's premium high-fidelity voices.
+                        </p>
+                      </div>
 
-                    {/* Animated waves visualizer */}
-                    <div className="h-11 flex items-end justify-center gap-1 bg-slate-950/40 rounded-2xl px-3 py-1.5">
-                      {[...Array(20)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-0.5 rounded-full bg-teal-400 transition-all duration-150"
-                          style={{
-                            height: isPlaying ? `${Math.floor(Math.random() * 28) + 4}px` : '4px'
+                      {/* Animated waves visualizer */}
+                      <div className="h-11 flex items-end justify-center gap-1 bg-slate-950/40 rounded-2xl px-3 py-1.5">
+                        {[...Array(20)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-0.5 rounded-full bg-teal-400 transition-all duration-150"
+                            style={{
+                              height: isPlaying ? `${Math.floor(Math.random() * 28) + 4}px` : '4px'
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Speed rate configuration slider */}
+                      <div className="space-y-1 pt-1">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
+                          <span>Host Playback Cadence Speed</span>
+                          <span>{playbackRate}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.8"
+                          max="1.5"
+                          step="0.05"
+                          value={playbackRate}
+                          onChange={(e) => {
+                            setPlaybackRate(parseFloat(e.target.value));
+                            if (isPlaying) {
+                              synthRef.current?.cancel();
+                              speakLine(currentLineIndex);
+                            }
                           }}
+                          className="w-full accent-teal-400 bg-slate-800 rounded-lg h-1"
                         />
+                      </div>
+
+                      {/* Dynamic Speech Selectors */}
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-extrabold text-slate-400 block">Host 1 Premium Voice</label>
+                          <select
+                            value={selectedHost1Voice}
+                            onChange={(e) => setSelectedHost1Voice(e.target.value)}
+                            className="w-full bg-slate-850 border border-slate-800 text-[9px] rounded-lg p-1.5 text-slate-200"
+                          >
+                            {availableVoices.map(v => (
+                              <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-extrabold text-slate-400 block">Host 2 Premium Voice</label>
+                          <select
+                            value={selectedHost2Voice}
+                            onChange={(e) => setSelectedHost2Voice(e.target.value)}
+                            className="w-full bg-slate-850 border border-slate-800 text-[9px] rounded-lg p-1.5 text-slate-200"
+                          >
+                            {availableVoices.map(v => (
+                              <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <Progress value={podcastProgress} className="h-1.5 bg-slate-800 accent-teal-400" />
+
+                      <div className="flex items-center justify-between text-xs font-mono text-slate-400">
+                        <span>Line {currentLineIndex + 1} of {scriptLines.length}</span>
+                        <span>{podcastProgress}%</span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={handleResetPodcast}
+                          className="text-white hover:bg-white/10 rounded-full h-9 w-9"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+
+                        <Button
+                          onClick={handleSpeakPodcast}
+                          className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-2 rounded-full text-xs shadow-md flex items-center gap-1.5"
+                        >
+                          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          {isPlaying ? "Pause Overview" : "Play Overview"}
+                        </Button>
+
+                        <Badge className="bg-teal-950 text-teal-400 border border-teal-800 font-extrabold text-[8px]">
+                          ACTIVE SYNTH
+                        </Badge>
+                      </div>
+
+                    </div>
+                  </Card>
+                )}
+
+                {/* Real Google Custom Instructions Panel */}
+                <Card className="p-4 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm">
+                  <div className="flex items-center gap-1.5 border-b pb-2">
+                    <Mic2 className="w-4.5 h-4.5 text-[#004D40]" />
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">Customize Audio Overview</h4>
+                      <p className="text-[10px] text-slate-400 font-semibold">Direct what the hosts focus on or how they interact</p>
+                    </div>
+                  </div>
+
+                  {/* Preset Quick Suggestion Chips */}
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Quick-Apply Presets</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRESET_DIRECTIVES.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => applyPodcastInstructions(preset.text)}
+                          className="text-[10px] font-semibold bg-slate-50 hover:bg-teal-50 hover:text-teal-700 border border-slate-200 hover:border-teal-300 rounded-full px-2.5 py-1 text-slate-600 transition-colors"
+                        >
+                          {preset.label}
+                        </button>
                       ))}
                     </div>
-
-                    {/* Speed rate configuration slider */}
-                    <div className="space-y-1 pt-1">
-                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
-                        <span>Host Playback Cadence Speed</span>
-                        <span>{playbackRate}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.8"
-                        max="1.5"
-                        step="0.05"
-                        value={playbackRate}
-                        onChange={(e) => {
-                          setPlaybackRate(parseFloat(e.target.value));
-                          if (isPlaying) {
-                            synthRef.current?.cancel();
-                            speakLine(currentLineIndex);
-                          }
-                        }}
-                        className="w-full accent-teal-400 bg-slate-800 rounded-lg h-1"
-                      />
-                    </div>
-
-                    {/* Dynamic Speech Selectors */}
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-extrabold text-slate-400 block">Host 1 Premium Voice</label>
-                        <select
-                          value={selectedHost1Voice}
-                          onChange={(e) => setSelectedHost1Voice(e.target.value)}
-                          className="w-full bg-slate-850 border border-slate-800 text-[9px] rounded-lg p-1.5 text-slate-200"
-                        >
-                          {availableVoices.map(v => (
-                            <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-extrabold text-slate-400 block">Host 2 Premium Voice</label>
-                        <select
-                          value={selectedHost2Voice}
-                          onChange={(e) => setSelectedHost2Voice(e.target.value)}
-                          className="w-full bg-slate-850 border border-slate-800 text-[9px] rounded-lg p-1.5 text-slate-200"
-                        >
-                          {availableVoices.map(v => (
-                            <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <Progress value={podcastProgress} className="h-1.5 bg-slate-800 accent-teal-400" />
-
-                    <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                      <span>Line {currentLineIndex + 1} of {scriptLines.length}</span>
-                      <span>{podcastProgress}%</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={handleResetPodcast}
-                        className="text-white hover:bg-white/10 rounded-full h-9 w-9"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </Button>
-
-                      <Button
-                        onClick={handleSpeakPodcast}
-                        className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-2 rounded-full text-xs shadow-md flex items-center gap-1.5"
-                      >
-                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        {isPlaying ? "Pause Overview" : "Play Overview"}
-                      </Button>
-
-                      <Badge className="bg-teal-950 text-teal-400 border border-teal-800 font-extrabold text-[8px]">
-                        ACTIVE SYNTH
-                      </Badge>
-                    </div>
-
                   </div>
-                </Card>
 
-                {/* Custom Focus Directions Widget */}
-                <Card className="p-4 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-sm">
-                  <div className="flex items-center gap-1.5">
-                    <Settings2 className="w-4 h-4 text-teal-600" />
-                    <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">Customize Co-Host Pacing</h4>
-                  </div>
-                  <p className="text-[10px] text-slate-500 leading-relaxed">
-                    Direct the discussion focus dynamically. Try: <span className="font-bold">"explain it like I am 5"</span>, <span className="font-bold">"deeply technical breakdown"</span>, or <span className="font-bold">"lighthearted jokes"</span>.
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
+                  {/* Text input with absolute focus details */}
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Custom Focus Directives</span>
+                    <Textarea
                       value={podcastInstructions}
                       onChange={(e) => setPodcastInstructions(e.target.value)}
-                      placeholder="Focus target guidelines..."
-                      className="h-9 text-xs rounded-xl focus-visible:ring-teal-600 border-slate-200"
+                      placeholder="e.g. 'explain it to a high schooler', 'emphasize local database caching and client-side encryption...'"
+                      className="text-xs rounded-xl border-slate-200 focus-visible:ring-teal-600 resize-none min-h-[60px]"
                     />
-                    <Button 
-                      onClick={applyPodcastInstructions}
-                      className="bg-[#006a6a] hover:bg-[#005252] text-white text-xs font-bold rounded-xl h-9 px-4 shrink-0"
-                    >
-                      Apply
-                    </Button>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] text-slate-400 font-bold">Safe client parameters active</span>
+                      <Button 
+                        onClick={() => applyPodcastInstructions()}
+                        disabled={!podcastInstructions.trim() || isLocalTuning}
+                        className="bg-[#004D40] hover:bg-[#00332A] text-white text-xs font-bold rounded-xl h-8 px-4"
+                      >
+                        Apply Directions
+                      </Button>
+                    </div>
                   </div>
                 </Card>
 
