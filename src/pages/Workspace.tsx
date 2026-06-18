@@ -9,7 +9,7 @@ import AudioStudyPanel, { Flashcard } from '@/components/AudioStudyPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { ArrowLeft, BookOpen, Share2 } from 'lucide-react';
+import { ArrowLeft, Share2 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { 
   createChunksFromText,
@@ -18,6 +18,7 @@ import {
   generateWorkspaceSlides,
   Slide
 } from '@/utils/db';
+import NotebookLMLogo from '@/components/NotebookLMLogo';
 
 export default function Workspace() {
   const { id } = useParams<{ id: string }>();
@@ -223,9 +224,7 @@ export default function Workspace() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="rounded-full">
             <ArrowLeft className="w-4 h-4 text-slate-600" />
           </Button>
-          <div className="bg-[#1a73e8] text-white p-2 rounded-xl">
-            <BookOpen className="w-4 h-4" />
-          </div>
+          <NotebookLMLogo className="w-8 h-8" />
           <span className="font-bold text-slate-800 text-sm truncate max-w-[200px]">{notebookTitle}</span>
         </div>
         

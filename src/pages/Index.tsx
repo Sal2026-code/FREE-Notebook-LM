@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Plus, FileText, ArrowRight, Calendar, Trash2, Library, Sparkles, Layers, Globe
+  Plus, FileText, ArrowRight, Calendar, Trash2, Library, Sparkles, Layers, Globe
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { showSuccess, showError } from '@/utils/toast';
 import { createChunksFromText } from '@/utils/db';
+import NotebookLMLogo from '@/components/NotebookLMLogo';
 
 interface SimpleNotebook {
   id: string;
@@ -215,9 +216,7 @@ The Guide Studio automatically parses selected grounding documents into 4 core p
       {/* Top navbar */}
       <header className="h-[64px] border-b border-slate-200 bg-white px-6 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="bg-[#1a73e8] text-white p-2.5 rounded-xl shadow-md">
-            <BookOpen className="w-5 h-5" />
-          </div>
+          <NotebookLMLogo className="w-10 h-10" />
           <div>
             <span className="font-extrabold text-slate-900 tracking-tight text-base block">NotebookLM</span>
             <span className="text-[10px] text-[#1a73e8] font-bold tracking-widest uppercase">freenotebooklmclone.com</span>

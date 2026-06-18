@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { 
-  BookOpen, Share2, Globe, Sun, Moon, Database, Edit3, Check, Download, RefreshCw, FolderOpen
+  Share2, Globe, Sun, Moon, Database, Edit3, Check, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { showSuccess, showError } from '@/utils/toast';
+import NotebookLMLogo from '@/components/NotebookLMLogo';
 
 interface HeaderProps {
   title: string;
@@ -76,9 +77,7 @@ export default function Header({
   return (
     <header className="h-[56px] fixed top-0 left-0 right-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-[#FFFFFF]/90 dark:bg-[#121212]/90 backdrop-blur-md px-6 flex items-center justify-between">
       <div className="flex items-center gap-4 min-w-0">
-        <div className="bg-[#1a73e8] text-white p-2.5 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-[#1a73e8]/20">
-          <BookOpen className="h-4.5 w-4.5" />
-        </div>
+        <NotebookLMLogo className="w-9 h-9" />
         
         <div className="flex items-center gap-3 min-w-0">
           {isEditing ? (
