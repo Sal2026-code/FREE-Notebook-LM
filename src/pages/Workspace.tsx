@@ -7,6 +7,7 @@ import SourcePanel, { Source } from '@/components/SourcePanel';
 import WorkspacePanel, { ChatMessage, Note } from '@/components/WorkspacePanel';
 import AudioStudyPanel, { Flashcard } from '@/components/AudioStudyPanel';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ArrowLeft, BookOpen, Share2 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
@@ -216,7 +217,7 @@ export default function Workspace() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col antialiased font-sans">
       <div className="fixed top-0 left-0 right-0 z-50 h-[56px] border-b border-slate-200 bg-[#FFFFFF]/90 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="rounded-full">
@@ -296,7 +297,7 @@ export default function Workspace() {
                 <AudioStudyPanel
                   onGenerateAudio={() => {}}
                   isGeneratingAudio={false}
-                  hasAudio={hasAudio}
+                  hasAudio={sources.length > 0}
                   flashcards={dynamicFlashcards}
                   quizzes={dynamicQuizzes}
                   slides={editedSlides}
@@ -317,7 +318,7 @@ export default function Workspace() {
               onDeleteNote={handleDeleteNote}
               onUpdateNote={handleUpdateNote}
               onAddSourceClick={() => {}}
-              isLoading={isLoading}
+              isLoading={false}
               onTriggerCitationHighlight={handleTriggerCitationHighlight}
             />
           </div>
@@ -328,7 +329,7 @@ export default function Workspace() {
           <AudioStudyPanel
             onGenerateAudio={() => {}}
             isGeneratingAudio={false}
-            hasAudio={hasAudio}
+            hasAudio={sources.length > 0}
             flashcards={dynamicFlashcards}
             quizzes={dynamicQuizzes}
             slides={editedSlides}
