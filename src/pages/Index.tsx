@@ -8,7 +8,7 @@ import AudioStudyPanel, { Flashcard } from '@/components/AudioStudyPanel';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
-import { Files, Headphones, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Files, Headphones } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { 
   loadNotebookState, 
@@ -170,12 +170,9 @@ export default function Index() {
   const handleUpdateNote = (id: string, content: string) => {
     setState(prev => ({
       ...prev,
-      notes: prev.notes.map(n => n.id === id ? { ...n, content, lastUpdated: 'Just now' } : n)
+      sources: prev.notes.map(n => n.id === id ? { ...n, content, lastUpdated: 'Just now' } : n)
     }));
   };
-
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col antialiased">
@@ -190,9 +187,8 @@ export default function Index() {
 
       <div className="flex-1 pt-[56px] flex overflow-hidden relative h-[calc(100vh-56px)]">
         
-        <div className={`hidden lg:block transition-all duration-300 ease-in-out shrink-0 border-r border-slate-200 dark:border-slate-800 ${
-          leftOpen ? 'w-[22%]' : 'w-0 overflow-hidden'
-        }`}>
+        {/* Desktop Panel 1: Sources (Fixed to 22% on screen widths > 1024px) */}
+        <div className="hidden lg:block lg:w-[22%] h-full shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden">
           <SourcePanel
             sources={state.sources}
             selectedSourceId={selectedSourceId}
@@ -207,7 +203,8 @@ export default function Index() {
           />
         </div>
 
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 relative h-full">
+        {/* Desktop Panel 2: Workspace Panel (Fixed to 53% on screen widths > 1024px) */}
+        <div className="flex-1 lg:w-[53%] flex flex-col min-w-0 bg-white dark:bg-slate-900 relative h-full overflow-hidden">
           
           {/* Responsive triggers for Mobile/Tablet */}
           <div className="lg:hidden p-3 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
@@ -262,25 +259,7 @@ export default function Index() {
             </Sheet>
           </div>
 
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 z-30 hidden lg:block">
-            <button
-              onClick={() => setLeftOpen(!leftOpen)}
-              className="bg-white border border-slate-200 hover:border-teal-500 p-1.5 rounded-r-xl shadow-md text-slate-500 hover:text-teal-600 transition-all"
-            >
-              {leftOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </button>
-          </div>
-
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 z-30 hidden lg:block">
-            <button
-              onClick={() => setRightOpen(!rightOpen)}
-              className="bg-white border border-slate-200 hover:border-teal-500 p-1.5 rounded-l-xl shadow-md text-slate-500 hover:text-teal-600 transition-all"
-            >
-              {rightOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-          </div>
-
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 h-full overflow-hidden">
             <WorkspacePanel
               sources={state.sources}
               activeNotes={state.notes}
@@ -296,9 +275,8 @@ export default function Index() {
           </div>
         </div>
 
-        <div className={`hidden lg:block transition-all duration-300 ease-in-out shrink-0 border-l border-slate-200 dark:border-slate-800 ${
-          rightOpen ? 'w-[28%]' : 'w-0 overflow-hidden'
-        }`}>
+        {/* Desktop Panel 3: Audio Study Panel (Fixed to 25% on screen widths > 1024px) */}
+        <div className="hidden lg:block lg:w-[25%] h-full shrink-0 border-l border-slate-200 dark:border-slate-800 bg-[#FAF9F5] dark:bg-[#161616] overflow-hidden">
           <AudioStudyPanel
             onGenerateAudio={() => {}}
             isGeneratingAudio={false}
