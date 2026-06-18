@@ -1,319 +1,190 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import Header from '@/components/Header';
-import SourcePanel, { Source } from '@/components/SourcePanel';
-import WorkspacePanel, { ChatMessage, Note } from '@/components/WorkspacePanel';
-import AudioStudyPanel, { Flashcard } from '@/components/AudioStudyPanel';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Toaster } from '@/components/ui/sonner';
-import { Files, Headphones } from 'lucide-react';
-import { showSuccess, showError } from '@/utils/toast';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  loadNotebookState, 
-  saveNotebookState, 
-  NotebookState, 
-  generateWorkspaceFlashcards, 
-  generateWorkspaceQuizzes, 
-  generateWorkspaceSlides,
-  createChunksFromText,
-  Slide
-} from '@/utils/db';
+  BookOpen, Plus, FileText, ArrowRight, Library, Settings, Calendar, User, Search, Trash2
+} from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { showSuccess, showError } from '@/utils/toast';
+
+interface SimpleNotebook {
+  id: string;
+  title: string;
+  updatedAt: string;
+  sourcesCount: number;
+  notesCount: number;
+}
 
 export default function Index() {
-  const [state, setState] = useState<NotebookState>({
-    notebookTitle: "My Grounded Study Guide",
-    sources: [],
-    notes: [],
-    messages: [
-      {
-        id: 'm-init',
-        sender: 'ai',
-        text: "Welcome to freenotebooklmclone.com! Start by uploading your files, links, or notes in the left pane. All processing and indexing are done securely and privately inside your web browser.",
-        timestamp: 'Just now'
-      }
-    ],
-    researchMode: 'fast',
-    language: 'en'
-  });
-  
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasAudio, setHasAudio] = useState(false);
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+  const navigate = useNavigate();
+  const [notebooks, setNotebooks] = useState<SimpleNotebook[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newTitle, setNewTitle] = useState('');
 
-  const [editedSlides, setEditedSlides] = useState<Slide[]>([]);
-  const [highlightedChunkText, setHighlightedChunkText] = useState<string | undefined>(undefined);
-
+  // Initial load
   useEffect(() => {
-    saveNotebookState(state);
-  }, [state]);
-
-  const dynamicFlashcards = useMemo(() => {
-    return generateWorkspaceFlashcards(state.sources);
-  }, [state.sources]);
-
-  const dynamicQuizzes = useMemo(() => {
-    return generateWorkspaceQuizzes(state.sources);
-  }, [state.sources]);
-
-  const baseSlides = useMemo(() => {
-    return generateWorkspaceSlides(state.sources);
-  }, [state.sources]);
-
-  useEffect(() => {
-    setEditedSlides(baseSlides);
-  }, [baseSlides]);
-
-  const handleRenameTitle = (newTitle: string) => {
-    setState(prev => ({ ...prev, notebookTitle: newTitle }));
-  };
-
-  const handleLanguageChange = (lang: string) => {
-    setState(prev => ({ ...prev, language: lang }));
-    showSuccess(`Language set to ${lang.toUpperCase()}`);
-  };
-
-  const exportDatabase = () => {
-    const payload = JSON.stringify(state, null, 2);
-    navigator.clipboard.writeText(payload);
-    showSuccess("Backup JSON copied successfully!");
-  };
-
-  const importDatabase = (data: string) => {
     try {
-      const parsed = JSON.parse(data) as NotebookState;
-      if (parsed.notebookTitle && Array.isArray(parsed.sources)) {
-        setState(parsed);
-        showSuccess("Backup session restored cleanly!");
+      const saved = localStorage.getItem('notebooklm_clone_all_notebooks_v1');
+      if (saved) {
+        setNotebooks(JSON.parse(saved));
       } else {
-        showError("Invalid study workspace syntax.");
+        const defaults: SimpleNotebook[] = [
+          {
+            id: 'n-1',
+            title: "Web Engineering Master Syllabus",
+            updatedAt: "Today",
+            sourcesCount: 2,
+            notesCount: 1
+          },
+          {
+            id: 'n-2',
+            title: "Product Launch Strategy Docs",
+            updatedAt: "Yesterday",
+            sourcesCount: 4,
+            notesCount: 3
+          }
+        ];
+        localStorage.setItem('notebooklm_clone_all_notebooks_v1', JSON.stringify(defaults));
+        setNotebooks(defaults);
       }
     } catch (e) {
-      showError("Failed to parse backup payload.");
+      console.error(e);
     }
-  };
+  }, []);
 
-  const handleAddSource = (newSource: Omit<Source, 'id' | 'addedAt' | 'wordCount' | 'chunks'>) => {
-    const sourceId = Math.random().toString();
-    const sourceTitle = newSource.title;
-    const content = newSource.content;
-    const chunks = createChunksFromText(sourceId, sourceTitle, content);
-
-    const fresh: Source = {
-      ...newSource,
-      id: sourceId,
-      wordCount: content.split(/\s+/).filter(Boolean).length,
-      addedAt: new Date().toLocaleDateString(),
-      checked: true,
-      chunks
-    };
-
-    setState(prev => ({
-      ...prev,
-      sources: [...prev.sources, fresh]
-    }));
-    setSelectedSourceId(fresh.id);
-  };
-
-  const handleDeleteSource = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      sources: prev.sources.filter(s => s.id !== id)
-    }));
-    if (selectedSourceId === id) {
-      setSelectedSourceId(state.sources.length > 1 ? state.sources[0].id : null);
-    }
-  };
-
-  const handleToggleCheckSource = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      sources: prev.sources.map(s => s.id === id ? { ...s, checked: !s.checked } : s)
-    }));
-  };
-
-  const handleAutoLabelFolders = () => {
-    if (state.sources.length < 5) {
-      showError("Requires at least 5 active documents to cluster!");
-      return;
-    }
-    setState(prev => {
-      const updated = prev.sources.map((src) => {
-        let folder = "Dossier Studies";
-        if (src.type === 'pdf') folder = "Uploaded PDFs";
-        else if (src.type === 'url') folder = "Webpages & Media transcripts";
-        return { ...src, folder };
-      });
-      return { ...prev, sources: updated };
-    });
-    showSuccess("Auto-label folder grouping complete!");
-  };
-
-  const handleChangeResearchMode = (mode: 'fast' | 'deep') => {
-    setState(prev => ({ ...prev, researchMode: mode }));
-  };
-
-  const handleAddNote = (title: string, content: string) => {
-    const fresh = {
-      id: Math.random().toString(),
+  const handleCreateNotebook = () => {
+    const title = newTitle.trim() || "Untitled Notebook";
+    const fresh: SimpleNotebook = {
+      id: `n-${Date.now()}`,
       title,
-      content,
-      lastUpdated: 'Just now'
+      updatedAt: "Just now",
+      sourcesCount: 0,
+      notesCount: 0
     };
-    setState(prev => ({ ...prev, notes: [fresh, ...prev.notes] }));
+
+    const updated = [fresh, ...notebooks];
+    setNotebooks(updated);
+    localStorage.setItem('notebooklm_clone_all_notebooks_v1', JSON.stringify(updated));
+    setNewTitle('');
+    showSuccess("New workspace created successfully!");
+    navigate(`/notebook/${fresh.id}`);
   };
 
-  const handleDeleteNote = (id: string) => {
-    setState(prev => ({ ...prev, notes: prev.notes.filter(n => n.id !== id) }));
+  const handleDeleteNotebook = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = notebooks.filter(n => n.id !== id);
+    setNotebooks(updated);
+    localStorage.setItem('notebooklm_clone_all_notebooks_v1', JSON.stringify(updated));
+    showSuccess("Workspace removed cleanly.");
   };
 
-  const handleUpdateNote = (id: string, content: string) => {
-    setState(prev => ({
-      ...prev,
-      notes: prev.notes.map(n => n.id === id ? { ...n, content, lastUpdated: 'Just now' } : n)
-    }));
-  };
-
-  // Yellow Flash Highlights citation action trigger
-  const handleTriggerCitationHighlight = (chunkText: string) => {
-    setHighlightedChunkText(chunkText);
-    
-    // Find matching source
-    const matchedSource = state.sources.find(s => s.chunks.some(chk => chk.text === chunkText));
-    if (matchedSource) {
-      setSelectedSourceId(matchedSource.id);
-    }
-
-    // Auto clear flash after a few moments
-    setTimeout(() => {
-      setHighlightedChunkText(undefined);
-    }, 4500);
-  };
+  const filteredNotebooks = notebooks.filter(n => 
+    n.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col antialiased">
-      <Header 
-        title={state.notebookTitle}
-        onRenameTitle={handleRenameTitle}
-        language={state.language}
-        onLanguageChange={handleLanguageChange}
-        exportDatabase={exportDatabase}
-        importDatabase={importDatabase}
-        activeSourceCount={state.sources.filter(s => s.checked !== false).length}
-      />
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-800 font-sans flex flex-col text-left">
+      
+      {/* Top navbar */}
+      <header className="h-[64px] border-b border-slate-200 bg-white px-6 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#1a73e8] text-white p-2.5 rounded-xl shadow-md">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="font-extrabold text-slate-900 tracking-tight text-base block">NotebookLM</span>
+            <span className="text-[10px] text-[#1a73e8] font-bold tracking-widest uppercase">freenotebooklmclone.com</span>
+          </div>
+        </div>
 
-      {/* Force rigid, fixed three-pane landscape columns above 1024px with overflow hidden */}
-      <div className="flex-1 pt-[56px] flex overflow-hidden relative h-[calc(100vh-56px)]">
+        <div className="flex items-center gap-4">
+          <Badge className="bg-[#e8f0fe] text-[#1a73e8] border-none font-bold text-xs px-3 py-1 rounded-full">
+            Active Workspace Sandbox
+          </Badge>
+          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
+            JD
+          </div>
+        </div>
+      </header>
+
+      {/* Main Grid Section */}
+      <main className="max-w-6xl mx-auto w-full px-6 py-12 flex-1">
         
-        {/* Left Pane (22% Width) */}
-        <div className="hidden lg:block lg:w-[22%] h-full shrink-0 border-r border-slate-200 dark:border-slate-800 bg-[#FAF9F6] dark:bg-slate-900 overflow-hidden">
-          <SourcePanel
-            sources={state.sources}
-            selectedSourceId={selectedSourceId}
-            onSelectSource={setSelectedSourceId}
-            onAddSource={handleAddSource}
-            onDeleteSource={handleDeleteSource}
-            onToggleCheckSource={handleToggleCheckSource}
-            onAutoLabelFolders={handleAutoLabelFolders}
-            researchMode={state.researchMode}
-            onChangeResearchMode={handleChangeResearchMode}
-            highlightedChunkText={highlightedChunkText}
-          />
+        {/* Top welcome hero card */}
+        <div className="mb-10 text-center sm:text-left">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Personalized Notebook Studio</h1>
+          <p className="text-slate-500 text-sm mt-1.5 font-semibold leading-relaxed">
+            Create structured notebooks, ingest study materials, and build client-side vector search mappings. All files stay fully secure on this device.
+          </p>
         </div>
 
-        {/* Center Pane (53% Width) */}
-        <div className="flex-1 lg:w-[53%] flex flex-col min-w-0 bg-white dark:bg-slate-900 relative h-full overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* Responsive triggers for Mobile view navigation */}
-          <div className="lg:hidden p-3 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-full text-slate-600 bg-white border-slate-200 text-xs">
-                  Sources ({state.sources.length})
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-80 bg-white">
-                <SourcePanel
-                  sources={state.sources}
-                  selectedSourceId={selectedSourceId}
-                  onSelectSource={setSelectedSourceId}
-                  onAddSource={handleAddSource}
-                  onDeleteSource={handleDeleteSource}
-                  onToggleCheckSource={handleToggleCheckSource}
-                  onAutoLabelFolders={handleAutoLabelFolders}
-                  researchMode={state.researchMode}
-                  onChangeResearchMode={handleChangeResearchMode}
-                  highlightedChunkText={highlightedChunkText}
-                />
-              </SheetContent>
-            </Sheet>
+          {/* First card: Create New Notebook */}
+          <Card className="p-6 bg-white border border-slate-250 rounded-2xl flex flex-col justify-between shadow-sm min-h-[190px]">
+            <div className="space-y-3">
+              <span className="text-[10px] font-black tracking-widest text-[#1a73e8] uppercase">Instant Access</span>
+              <h3 className="font-bold text-slate-800 text-sm">Add New Studio Workspace</h3>
+              <Input
+                placeholder="Study Guide / Project Title..."
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="text-xs h-9 rounded-xl border-slate-250 focus-visible:ring-blue-500"
+              />
+            </div>
 
-            <span className="font-extrabold text-xs text-teal-600 truncate max-w-[150px]">
-              {state.notebookTitle}
-            </span>
+            <Button 
+              onClick={handleCreateNotebook}
+              className="bg-[#1a73e8] hover:bg-[#1557b0] text-white w-full rounded-xl text-xs font-bold gap-1.5 h-10 mt-4"
+            >
+              <Plus className="w-4 h-4" /> Create Notebook
+            </Button>
+          </Card>
 
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-full text-slate-600 bg-white border-slate-200 text-xs">
-                  Studio
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="p-0 w-85 bg-slate-50">
-                <AudioStudyPanel
-                  onGenerateAudio={() => {}}
-                  isGeneratingAudio={false}
-                  hasAudio={hasAudio}
-                  flashcards={dynamicFlashcards}
-                  quizzes={dynamicQuizzes}
-                  slides={editedSlides}
-                  sources={state.sources}
-                  onGenerateFlashcards={() => {}}
-                  isGeneratingFlashcards={false}
-                  onUpdateSlides={setEditedSlides}
-                />
-              </SheetContent>
-            </Sheet>
-          </div>
+          {/* Map loaded custom notebooks */}
+          {filteredNotebooks.map(notebook => (
+            <div 
+              key={notebook.id}
+              onClick={() => navigate(`/notebook/${notebook.id}`)}
+              className="group cursor-pointer p-6 bg-white hover:bg-slate-50/50 border border-slate-250 rounded-2xl flex flex-col justify-between shadow-sm min-h-[190px] transition-all hover:shadow-md hover:border-slate-300 relative"
+            >
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <Badge className="bg-slate-100 text-slate-600 font-bold text-[9px] uppercase tracking-wide">
+                    {notebook.sourcesCount} Source Files
+                  </Badge>
+                  <button 
+                    onClick={(e) => handleDeleteNotebook(notebook.id, e)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-full transition-opacity opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <h3 className="font-extrabold text-slate-800 text-sm tracking-tight leading-snug group-hover:text-[#1a73e8] transition-colors">
+                  {notebook.title}
+                </h3>
+              </div>
 
-          <div className="flex-1 min-h-0 h-full overflow-hidden">
-            <WorkspacePanel
-              sources={state.sources}
-              activeNotes={state.notes}
-              onAddNote={handleAddNote}
-              onDeleteNote={handleDeleteNote}
-              onUpdateNote={handleUpdateNote}
-              onAddSourceClick={() => {
-                const addBtn = document.querySelector('button[class*="bg-teal-600"]') as HTMLElement;
-                if (addBtn) addBtn.click();
-              }}
-              isLoading={isLoading}
-              onTriggerCitationHighlight={handleTriggerCitationHighlight}
-            />
-          </div>
+              <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-100">
+                <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Updated {notebook.updatedAt}
+                </span>
+                
+                <span className="text-xs text-[#1a73e8] font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  Open Notebook <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </div>
+          ))}
+
         </div>
 
-        {/* Right Pane (25% Width) */}
-        <div className="hidden lg:block lg:w-[25%] h-full shrink-0 border-l border-slate-200 dark:border-slate-800 bg-[#FAF9F5] dark:bg-[#161616] overflow-hidden">
-          <AudioStudyPanel
-            onGenerateAudio={() => {}}
-            isGeneratingAudio={false}
-            hasAudio={hasAudio}
-            flashcards={dynamicFlashcards}
-            quizzes={dynamicQuizzes}
-            slides={editedSlides}
-            sources={state.sources}
-            onGenerateFlashcards={() => {}}
-            isGeneratingFlashcards={false}
-            onUpdateSlides={setEditedSlides}
-          />
-        </div>
+      </main>
 
-      </div>
-
-      <Toaster position="top-center" richColors />
     </div>
   );
 }
