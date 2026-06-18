@@ -9,7 +9,7 @@ import AudioStudyPanel, { Flashcard } from '@/components/AudioStudyPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { ArrowLeft, Share2 } from 'lucide-react';
+import { ArrowLeft, Share2, Sparkles, Loader2 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { 
   createChunksFromText,
@@ -24,7 +24,7 @@ export default function Workspace() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Load notebook specific state from localStorage or initial defaults
+  // Notebook states
   const [notebookTitle, setNotebookTitle] = useState("My Grounded Study Guide");
   const [sources, setSources] = useState<Source[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -34,6 +34,15 @@ export default function Workspace() {
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [highlightedChunkText, setHighlightedChunkText] = useState<string | undefined>(undefined);
   const [editedSlides, setEditedSlides] = useState<Slide[]>([]);
+
+  // Realistic generation states to mimic real product video workflows
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [audioGenerationProgress, setAudioGenerationProgress] = useState(0);
+  const [audioGenerationStatus, setAudioGenerationStatus] = useState("");
+  const [hasGeneratedAudio, setHasGeneratedAudio] = useState(false);
+
+  const [isGeneratingGuides, setIsGeneratingGuides] = useState(false);
+  const [hasGeneratedGuides, setHasGeneratedGuides] = useState(false);
 
   // Load state on mount based on ID
   useEffect(() => {
@@ -49,6 +58,12 @@ export default function Workspace() {
           setNotes(current.notes || []);
           setResearchMode(current.researchMode || 'fast');
           setLanguage(current.language || 'en');
+          
+          // Pre-seed audio status if sources already exist
+          if (current.sources && current.sources.length > 0) {
+            setHasGeneratedAudio(true);
+            setHasGeneratedGuides(true);
+          }
         }
       }
     } catch (e) {
@@ -82,17 +97,58 @@ export default function Workspace() {
     }
   };
 
+  // Simulated professional synthesis stages (from Google launch metrics)
+  const handleGenerateAudio = () => {
+    if (sources.length === 0) {
+      showError("Please upload at least one source file first.");
+      return;
+    }
+    
+    setIsGeneratingAudio(true);
+    setAudioGenerationProgress(0);
+    setAudioGenerationStatus("Ingesting grounding context nodes...");
+
+    const steps = [
+      { prg: 20, msg: "Parsing high-density semantic slices..." },
+      { prg: 45, msg: "Drafting conversational host script templates..." },
+      { prg: 70, msg: "Synthesizing professional co-host dialogs..." },
+      { prg: 90, msg: "Compiling premium browser speech waveforms..." },
+      { prg: 100, msg: "Ready!" }
+    ];
+
+    steps.forEach((step, idx) => {
+      setTimeout(() => {
+        setAudioGenerationProgress(step.prg);
+        setAudioGenerationStatus(step.msg);
+        if (step.prg === 100) {
+          setIsGeneratingAudio(false);
+          setHasGeneratedAudio(true);
+          showSuccess("Deep-Dive Audio Overview synthesized successfully!");
+        }
+      }, (idx + 1) * 800);
+    });
+  };
+
+  const handleGenerateGuides = () => {
+    setIsGeneratingGuides(true);
+    setTimeout(() => {
+      setIsGeneratingGuides(false);
+      setHasGeneratedGuides(true);
+      showSuccess("FAQ, Briefs, Glossary terms compiled cleanly!");
+    }, 1500);
+  };
+
   const dynamicFlashcards = useMemo(() => {
-    return generateWorkspaceFlashcards(sources);
-  }, [sources]);
+    return hasGeneratedGuides ? generateWorkspaceFlashcards(sources) : [];
+  }, [sources, hasGeneratedGuides]);
 
   const dynamicQuizzes = useMemo(() => {
-    return generateWorkspaceQuizzes(sources);
-  }, [sources]);
+    return hasGeneratedGuides ? generateWorkspaceQuizzes(sources) : [];
+  }, [sources, hasGeneratedGuides]);
 
   const baseSlides = useMemo(() => {
-    return generateWorkspaceSlides(sources);
-  }, [sources]);
+    return hasGeneratedGuides ? generateWorkspaceSlides(sources) : [];
+  }, [sources, hasGeneratedGuides]);
 
   useEffect(() => {
     setEditedSlides(baseSlides);
@@ -149,6 +205,10 @@ export default function Workspace() {
     setSources(updated);
     setSelectedSourceId(fresh.id);
     saveState(updated);
+    
+    // Auto trigger synthesis to keep flow smooth
+    setHasGeneratedAudio(true);
+    setHasGeneratedGuides(true);
   };
 
   const handleDeleteSource = (sourceId: string) => {
@@ -218,29 +278,22 @@ export default function Workspace() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col antialiased font-sans">
-      <div className="fixed top-0 left-0 right-0 z-50 h-[56px] border-b border-slate-200 bg-[#FFFFFF]/90 flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="rounded-full">
-            <ArrowLeft className="w-4 h-4 text-slate-600" />
-          </Button>
-          <NotebookLMLogo className="w-8 h-8" />
-          <span className="font-bold text-slate-800 text-sm truncate max-w-[200px]">{notebookTitle}</span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-teal-200 text-teal-700 bg-teal-50 text-[10px] rounded-full px-2.5">
-            Workspace ID: {id?.slice(0, 5)}
-          </Badge>
-          <Button onClick={exportDatabase} variant="outline" size="sm" className="h-8 rounded-full text-xs font-semibold gap-1">
-            <Share2 className="w-3.5 h-3.5" /> Share
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F9F9FB] dark:bg-slate-950 flex flex-col antialiased font-sans">
+      
+      {/* Top Header navbar */}
+      <Header
+        title={notebookTitle}
+        onRenameTitle={handleRenameTitle}
+        language={language}
+        onLanguageChange={handleLanguageChange}
+        exportDatabase={exportDatabase}
+        importDatabase={importDatabase}
+        activeSourceCount={sources.filter(s => s.checked !== false).length}
+      />
 
       <div className="flex-1 pt-[56px] flex overflow-hidden relative h-[calc(100vh-56px)]">
         
-        {/* Left Pane */}
+        {/* Left Pane (Sources) */}
         <div className="hidden lg:block lg:w-[22%] h-full shrink-0 border-r border-slate-200 dark:border-slate-800 bg-[#FAF9F6] dark:bg-slate-900 overflow-hidden">
           <SourcePanel
             sources={sources}
@@ -256,10 +309,10 @@ export default function Workspace() {
           />
         </div>
 
-        {/* Center Pane */}
+        {/* Center Pane (Chat & Keep Notes) */}
         <div className="flex-1 lg:w-[53%] flex flex-col min-w-0 bg-white dark:bg-slate-900 relative h-full overflow-hidden">
           {/* Mobile responsive panel links */}
-          <div className="lg:hidden p-3 bg-slate-100 flex items-center justify-between shrink-0">
+          <div className="lg:hidden p-3 bg-slate-150 flex items-center justify-between shrink-0 border-b">
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="rounded-full text-xs">
@@ -294,15 +347,15 @@ export default function Workspace() {
               </SheetTrigger>
               <SheetContent side="right" className="p-0 w-85 bg-slate-50">
                 <AudioStudyPanel
-                  onGenerateAudio={() => {}}
-                  isGeneratingAudio={false}
-                  hasAudio={sources.length > 0}
+                  onGenerateAudio={handleGenerateAudio}
+                  isGeneratingAudio={isGeneratingAudio}
+                  hasAudio={hasGeneratedAudio}
                   flashcards={dynamicFlashcards}
                   quizzes={dynamicQuizzes}
                   slides={editedSlides}
                   sources={sources}
-                  onGenerateFlashcards={() => {}}
-                  isGeneratingFlashcards={false}
+                  onGenerateFlashcards={handleGenerateGuides}
+                  isGeneratingFlashcards={isGeneratingGuides}
                   onUpdateSlides={setEditedSlides}
                 />
               </SheetContent>
@@ -323,20 +376,36 @@ export default function Workspace() {
           </div>
         </div>
 
-        {/* Right Pane */}
+        {/* Right Pane (Audio Overview & Study Tools) */}
         <div className="hidden lg:block lg:w-[25%] h-full shrink-0 border-l border-slate-200 dark:border-slate-800 bg-[#FAF9F5] dark:bg-[#161616] overflow-hidden">
-          <AudioStudyPanel
-            onGenerateAudio={() => {}}
-            isGeneratingAudio={false}
-            hasAudio={sources.length > 0}
-            flashcards={dynamicFlashcards}
-            quizzes={dynamicQuizzes}
-            slides={editedSlides}
-            sources={sources}
-            onGenerateFlashcards={() => {}}
-            isGeneratingFlashcards={false}
-            onUpdateSlides={setEditedSlides}
-          />
+          
+          {isGeneratingAudio ? (
+            /* Premium active generation screens, replicating launch animations */
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4 bg-slate-900 text-white">
+              <Loader2 className="w-10 h-10 text-teal-400 animate-spin" />
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-black uppercase tracking-widest text-teal-400">Synthesizing Co-Hosts</h4>
+                <p className="text-[11px] text-slate-400 max-w-[180px] font-bold">{audioGenerationStatus}</p>
+              </div>
+              <div className="w-32 bg-slate-800 h-1 rounded-full overflow-hidden">
+                <div className="bg-teal-400 h-full transition-all duration-300" style={{ width: `${audioGenerationProgress}%` }} />
+              </div>
+            </div>
+          ) : (
+            <AudioStudyPanel
+              onGenerateAudio={handleGenerateAudio}
+              isGeneratingAudio={isGeneratingAudio}
+              hasAudio={hasGeneratedAudio}
+              flashcards={dynamicFlashcards}
+              quizzes={dynamicQuizzes}
+              slides={editedSlides}
+              sources={sources}
+              onGenerateFlashcards={handleGenerateGuides}
+              isGeneratingFlashcards={isGeneratingGuides}
+              onUpdateSlides={setEditedSlides}
+            />
+          )}
+
         </div>
 
       </div>
