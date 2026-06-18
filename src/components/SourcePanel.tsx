@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Plus, FileText, Link, AlignLeft, Trash2, Search, Eye, Folder, 
-  Laptop, Globe, Cloud, FolderPlus, Sliders, Play, FileCode, CheckCircle2
+  Laptop, Globe, Cloud, FolderPlus, Sliders, Play, FileCode, CheckCircle2, BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,7 +110,7 @@ export default function SourcePanel({
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-[#FFFFFF] dark:bg-[#151515] shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <BookOpenCheck className="w-4.5 h-4.5 text-teal-600" />
+            <BookOpen className="w-4.5 h-4.5 text-teal-600" />
             <h2 className="font-extrabold text-slate-800 dark:text-slate-100 text-[11px] tracking-wider uppercase">Source Index</h2>
           </div>
           <Badge className="bg-teal-50 border border-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400 font-extrabold px-2 py-0.5 rounded-full text-[10px]">
@@ -127,7 +127,7 @@ export default function SourcePanel({
           <DialogContent className="max-w-xl bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 text-left shadow-lg">
             <DialogHeader>
               <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <BookOpenCheck className="w-5 h-5 text-teal-600" /> Dynamic Grounding Hub
+                <BookOpen className="w-5 h-5 text-teal-600" /> Dynamic Grounding Hub
               </DialogTitle>
               <DialogDescription className="text-[11px] text-slate-500 mt-1">
                 Parsed entirely client-side. Compiled strictly in-memory safely.
