@@ -202,13 +202,14 @@ export default function Index() {
         onLanguageChange={handleLanguageChange}
         exportDatabase={exportDatabase}
         importDatabase={importDatabase}
+        activeSourceCount={state.sources.filter(s => s.checked !== false).length}
       />
 
       {/* Force rigid, fixed three-pane landscape columns above 1024px with overflow hidden */}
       <div className="flex-1 pt-[56px] flex overflow-hidden relative h-[calc(100vh-56px)]">
         
         {/* Left Pane (22% Width) */}
-        <div className="hidden lg:block lg:w-[22%] h-full shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden">
+        <div className="hidden lg:block lg:w-[22%] h-full shrink-0 border-r border-slate-200 dark:border-slate-800 bg-[#FAF9F6] dark:bg-slate-900 overflow-hidden">
           <SourcePanel
             sources={state.sources}
             selectedSourceId={selectedSourceId}

@@ -3,12 +3,12 @@
 import React, { useState } from 'react';
 import { 
   Plus, FileText, Link, AlignLeft, Trash2, Search, Eye, Folder, 
-  Laptop, Globe, Cloud, FolderPlus, Compass, Calendar, Sparkles, BookOpenCheck, Sliders, Check
+  Laptop, Globe, Cloud, FolderPlus, Sliders, Play, FileCode, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +16,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Checkbox } from '@/components/ui/checkbox';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { showSuccess, showError } from '@/utils/toast';
-import { createChunksFromText } from '@/utils/db';
+
+export interface SourceChunk {
+  id: string;
+  sourceId: string;
+  sourceTitle: string;
+  text: string;
+  startIndex: number;
+}
 
 export interface Source {
   id: string;
@@ -27,7 +34,7 @@ export interface Source {
   addedAt: string;
   checked?: boolean;
   folder?: string;
-  chunks: any[];
+  chunks: SourceChunk[];
 }
 
 interface SourcePanelProps {
@@ -40,7 +47,7 @@ interface SourcePanelProps {
   onAutoLabelFolders: () => void;
   researchMode: 'fast' | 'deep';
   onChangeResearchMode: (mode: 'fast' | 'deep') => void;
-  highlightedChunkText?: string; // yellow flash highlight target
+  highlightedChunkText?: string; 
 }
 
 export default function SourcePanel({
@@ -65,11 +72,11 @@ export default function SourcePanel({
 
   const handleAdd = (type: string) => {
     if (!newTitle.trim()) {
-      showError("Please enter a title.");
+      showError("Please specify a document title.");
       return;
     }
     if (!newContent.trim()) {
-      showError("Please paste raw content to ingest.");
+      showError("Please paste raw textual copy to ingest.");
       return;
     }
 
@@ -82,14 +89,14 @@ export default function SourcePanel({
     setNewTitle('');
     setNewContent('');
     setIsAddOpen(false);
-    showSuccess("Document chunks compiled successfully!");
+    showSuccess("Document chunks generated successfully!");
   };
 
   const getIcon = (type: string) => {
-    if (type === 'pdf') return <FileText className="w-4 h-4 text-rose-500" />;
-    if (type === 'youtube') return <Link className="w-4 h-4 text-red-500" />;
-    if (type === 'url') return <Globe className="w-4 h-4 text-sky-500" />;
-    return <AlignLeft className="w-4 h-4 text-teal-600" />;
+    if (type === 'pdf') return <FileText className="w-4.5 h-4.5 text-rose-500" />;
+    if (type === 'youtube') return <Link className="w-4.5 h-4.5 text-red-500" />;
+    if (type === 'url') return <Globe className="w-4.5 h-4.5 text-sky-500" />;
+    return <AlignLeft className="w-4.5 h-4.5 text-emerald-600" />;
   };
 
   const filtered = sources.filter(src => 
@@ -98,54 +105,54 @@ export default function SourcePanel({
   );
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 text-left">
+    <div className="w-full h-full flex flex-col bg-[#FAF9F6] dark:bg-[#121212] border-r border-slate-200 dark:border-slate-800 text-left">
       
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-white dark:bg-slate-950 shrink-0">
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-[#FFFFFF] dark:bg-[#151515] shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <BookOpenCheck className="w-4.5 h-4.5 text-teal-600" />
-            <h2 className="font-bold text-slate-800 dark:text-slate-100 text-xs tracking-wider uppercase">Source Index</h2>
+            <h2 className="font-extrabold text-slate-800 dark:text-slate-100 text-[11px] tracking-wider uppercase">Source Index</h2>
           </div>
-          <Badge className="bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400 font-bold px-2 py-0.5 rounded-full text-[10px]">
-            {sources.length} total
+          <Badge className="bg-teal-50 border border-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400 font-extrabold px-2 py-0.5 rounded-full text-[10px]">
+            {sources.length} active
           </Badge>
         </div>
 
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-10 font-bold text-xs flex items-center justify-center gap-2">
-              <Plus className="w-4 h-4" /> Add Source
+            <Button className="w-full bg-[#006a6a] hover:bg-[#005252] text-white rounded-2xl h-10 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all">
+              <Plus className="w-4 h-4" /> Add Source Documents
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xl bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-left">
+          <DialogContent className="max-w-xl bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 text-left shadow-lg">
             <DialogHeader>
-              <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                Grounded Ingestion Hub
+              <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <BookOpenCheck className="w-5 h-5 text-teal-600" /> Dynamic Grounding Hub
               </DialogTitle>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Parsed strictly locally on your browser. Secured with no cloud latency.
-              </p>
+              <DialogDescription className="text-[11px] text-slate-500 mt-1">
+                Parsed entirely client-side. Compiled strictly in-memory safely.
+              </DialogDescription>
             </DialogHeader>
 
             <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full mt-3">
               <TabsList className="grid grid-cols-4 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
-                <TabsTrigger value="local" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-teal-600 data-[state=active]:text-white">
-                  <Laptop className="w-3.5 h-3.5 mr-1" /> File
+                <TabsTrigger value="local" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-[#006a6a] data-[state=active]:text-white">
+                  <Laptop className="w-3.5 h-3.5 mr-1" /> File Ingest
                 </TabsTrigger>
-                <TabsTrigger value="drive" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-teal-600 data-[state=active]:text-white">
-                  <Cloud className="w-3.5 h-3.5 mr-1" /> Drive
+                <TabsTrigger value="drive" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-[#006a6a] data-[state=active]:text-white">
+                  <Cloud className="w-3.5 h-3.5 mr-1" /> GDrive
                 </TabsTrigger>
-                <TabsTrigger value="url" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-teal-600 data-[state=active]:text-white">
-                  <Globe className="w-3.5 h-3.5 mr-1" /> URL
+                <TabsTrigger value="url" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-[#006a6a] data-[state=active]:text-white">
+                  <Globe className="w-3.5 h-3.5 mr-1" /> URL Link
                 </TabsTrigger>
-                <TabsTrigger value="text" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-teal-600 data-[state=active]:text-white">
-                  <AlignLeft className="w-3.5 h-3.5 mr-1" /> Paste
+                <TabsTrigger value="text" className="text-[11px] font-bold rounded-lg data-[state=active]:bg-[#006a6a] data-[state=active]:text-white">
+                  <AlignLeft className="w-3.5 h-3.5 mr-1" /> Paste Text
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="local" className="space-y-3 pt-3">
                 <Input
-                  placeholder="Document Name (e.g. workspace-guide.pdf)"
+                  placeholder="Document Name (e.g. workspace-notes.pdf)"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="rounded-xl text-xs h-9"
@@ -154,25 +161,25 @@ export default function SourcePanel({
                   placeholder="Paste extracted document context here..."
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="min-h-[120px] text-xs rounded-xl"
+                  className="min-h-[120px] text-xs rounded-xl resize-none"
                 />
-                <Button onClick={() => handleAdd('pdf')} className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold">Parse Document</Button>
+                <Button onClick={() => handleAdd('pdf')} className="w-full bg-[#006a6a] hover:bg-[#005252] text-white rounded-xl text-xs font-bold">Parse Document</Button>
               </TabsContent>
 
               <TabsContent value="drive" className="space-y-3 pt-3">
                 <Input
-                  placeholder="Drive Import Title"
+                  placeholder="GDrive Document Name"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="rounded-xl text-xs h-9"
                 />
                 <Textarea
-                  placeholder="Paste context rows here..."
+                  placeholder="Paste summary rows here..."
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="min-h-[120px] text-xs rounded-xl"
+                  className="min-h-[120px] text-xs rounded-xl resize-none"
                 />
-                <Button onClick={() => handleAdd('docx')} className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold">Import Drive</Button>
+                <Button onClick={() => handleAdd('drive')} className="w-full bg-[#006a6a] hover:bg-[#005252] text-white rounded-xl text-xs font-bold">Import Shared Drive</Button>
               </TabsContent>
 
               <TabsContent value="url" className="space-y-3 pt-3">
@@ -186,25 +193,25 @@ export default function SourcePanel({
                   placeholder="Paste summary webpage copy..."
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="min-h-[120px] text-xs rounded-xl"
+                  className="min-h-[120px] text-xs rounded-xl resize-none"
                 />
-                <Button onClick={() => handleAdd('url')} className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold">Parse URL</Button>
+                <Button onClick={() => handleAdd('url')} className="w-full bg-[#006a6a] hover:bg-[#005252] text-white rounded-xl text-xs font-bold">Parse URL</Button>
               </TabsContent>
 
               <TabsContent value="text" className="space-y-3 pt-3">
                 <Input
-                  placeholder="Study Note Title"
+                  placeholder="Study reference topic"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="rounded-xl text-xs h-9"
                 />
                 <Textarea
-                  placeholder="Type study references directly..."
+                  placeholder="Type or paste study targets directly..."
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="min-h-[120px] text-xs rounded-xl"
+                  className="min-h-[120px] text-xs rounded-xl resize-none"
                 />
-                <Button onClick={() => handleAdd('text')} className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold">Log Text</Button>
+                <Button onClick={() => handleAdd('text')} className="w-full bg-[#006a6a] hover:bg-[#005252] text-white rounded-xl text-xs font-bold">Log Text</Button>
               </TabsContent>
             </Tabs>
           </DialogContent>
@@ -213,7 +220,7 @@ export default function SourcePanel({
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Search local indexes..."
+            placeholder="Search local vector indices..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 h-9 bg-slate-100 dark:bg-slate-900 border-none rounded-full focus-visible:ring-teal-500 text-xs"
@@ -227,48 +234,50 @@ export default function SourcePanel({
             onClick={onAutoLabelFolders}
             variant="outline" 
             size="xs" 
-            className="w-full h-8 mb-4 border-dashed border-teal-200 text-teal-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1"
+            className="w-full h-8 mb-4 border-dashed border-teal-200 text-teal-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-teal-50/50"
           >
             <FolderPlus className="w-3.5 h-3.5" /> Auto-Label Folder Nodes
           </Button>
         )}
 
         {filtered.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
-            <FileText className="w-10 h-10 stroke-1 text-teal-600 animate-pulse" />
+          <div className="py-24 text-center text-slate-400 flex flex-col items-center justify-center space-y-4">
+            <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-900 text-teal-600 animate-pulse">
+              <CheckCircle2 className="w-8 h-8 stroke-[1.5]" />
+            </div>
             <div>
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Clean Slate</p>
-              <p className="text-[10px] mt-1 max-w-[180px] mx-auto text-slate-400 leading-normal">
-                Grounded indexing waits for your custom document uploads. All safe, fully local.
+              <p className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Workspace is empty</p>
+              <p className="text-[10px] mt-1 max-w-[190px] mx-auto text-slate-400 leading-normal">
+                Click "+ Add Source" to upload PDFs, URLs, and text notes. They will automatically compile into grounded indexes on-device.
               </p>
             </div>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {filtered.map(source => (
               <div
                 key={source.id}
                 onClick={() => onSelectSource(source.id)}
-                className={`group relative p-3 rounded-2xl border flex items-center gap-3 cursor-pointer transition-all ${
+                className={`group relative p-3.5 rounded-3xl border flex items-center gap-3.5 cursor-pointer transition-all ${
                   selectedSourceId === source.id
-                    ? 'bg-teal-50/45 border-teal-200 shadow-sm'
-                    : 'bg-white hover:bg-slate-50 border-slate-200/80 dark:bg-slate-950 dark:border-slate-800'
+                    ? 'bg-white border-teal-300 shadow-sm shadow-teal-500/5 ring-1 ring-teal-100/50'
+                    : 'bg-[#FFFFFF] hover:bg-slate-50/70 border-slate-200 dark:bg-slate-950 dark:border-slate-800'
                 }`}
               >
                 <Checkbox
                   checked={!!source.checked}
                   onCheckedChange={() => onToggleCheckSource(source.id)}
                   onClick={(e) => e.stopPropagation()}
-                  className="border-slate-300 data-[state=checked]:bg-teal-600"
+                  className="border-slate-300 data-[state=checked]:bg-[#006a6a] rounded"
                 />
                 
-                <div className="shrink-0">{getIcon(source.type)}</div>
+                <div className="shrink-0 p-1.5 rounded-xl bg-slate-50 dark:bg-slate-900">{getIcon(source.type)}</div>
                 
                 <div className="flex-1 min-w-0 pr-1 text-left">
-                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-snug truncate">
+                  <p className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 leading-snug truncate">
                     {source.title}
                   </p>
-                  <span className="text-[9px] text-slate-400 font-semibold">{source.wordCount} words • {source.chunks.length} chunks</span>
+                  <span className="text-[9px] text-slate-400 font-bold">{source.wordCount} words • {source.chunks.length} chunks</span>
                 </div>
 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0">
@@ -277,20 +286,20 @@ export default function SourcePanel({
                       e.stopPropagation();
                       setPreviewSource(source);
                     }}
-                    className="p-1 text-slate-400 hover:text-teal-600 rounded-lg hover:bg-slate-100"
+                    className="p-1.5 text-slate-400 hover:text-teal-600 rounded-lg hover:bg-slate-100"
                     title="Read Chunks"
                   >
-                    <Eye className="w-3.5 h-3.5" />
+                    <Eye className="w-4 h-4" />
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteSource(source.id);
                     }}
-                    className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100"
+                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100"
                     title="Delete"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -299,12 +308,12 @@ export default function SourcePanel({
         )}
       </ScrollArea>
 
-      <div className="p-4 bg-slate-100/75 border-t border-slate-200 dark:bg-slate-950 flex flex-col gap-2.5 shrink-0">
+      <div className="p-4 bg-[#FFFFFF] border-t border-slate-200 dark:bg-slate-950 flex flex-col gap-2.5 shrink-0 shadow-inner">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
             <Sliders className="w-3.5 h-3.5 text-teal-600" /> Grounding Strategy:
           </span>
-          <Badge className="bg-teal-600 text-white text-[9px] font-bold uppercase rounded-md px-1.5 py-0.5">
+          <Badge className="bg-teal-600 text-white text-[9px] font-bold uppercase rounded-md px-1.5 py-0.5 border-none">
             {researchMode} mode
           </Badge>
         </div>
@@ -313,7 +322,7 @@ export default function SourcePanel({
           <button
             onClick={() => onChangeResearchMode('fast')}
             className={`py-1.5 text-[10px] font-extrabold rounded-lg transition-all ${
-              researchMode === 'fast' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500'
+              researchMode === 'fast' ? 'bg-white text-teal-700 shadow-sm font-black' : 'text-slate-500'
             }`}
           >
             Fast Synthesis
@@ -321,7 +330,7 @@ export default function SourcePanel({
           <button
             onClick={() => onChangeResearchMode('deep')}
             className={`py-1.5 text-[10px] font-extrabold rounded-lg transition-all ${
-              researchMode === 'deep' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500'
+              researchMode === 'deep' ? 'bg-white text-teal-700 shadow-sm font-black' : 'text-slate-500'
             }`}
           >
             Deep Study
@@ -329,7 +338,7 @@ export default function SourcePanel({
         </div>
       </div>
 
-      {/* highlighted scrolling Eye Preview slide-overlay */}
+      {/* Slide-overlay Source Preview */}
       <Sheet open={!!previewSource} onOpenChange={(open) => !open && setPreviewSource(null)}>
         <SheetContent side="left" className="w-[420px] bg-white p-6 flex flex-col h-full border-r border-slate-200 text-left">
           <SheetHeader className="pb-4 border-b border-slate-100">
@@ -347,7 +356,7 @@ export default function SourcePanel({
               return (
                 <div 
                   key={chk.id} 
-                  className={`p-3 rounded-xl mb-3 border text-[11px] leading-relaxed transition-all ${
+                  className={`p-3.5 rounded-2xl mb-3 border text-[11px] leading-relaxed transition-all ${
                     isFlashed 
                       ? 'bg-yellow-100 border-yellow-400 font-semibold animate-pulse scale-[1.01]' 
                       : 'bg-white border-slate-200 text-slate-700'
@@ -355,7 +364,7 @@ export default function SourcePanel({
                 >
                   <div className="flex items-center justify-between mb-1.5 border-b pb-1">
                     <span className="font-mono text-[9px] text-slate-400">Index Chunk #{index + 1}</span>
-                    <Badge className="bg-slate-100 text-[8px] text-slate-500 rounded-sm">Chars {chk.text.length}</Badge>
+                    <Badge className="bg-slate-100 text-[8px] text-slate-500 rounded-sm border-none">Chars {chk.text.length}</Badge>
                   </div>
                   <p className="whitespace-pre-wrap">{chk.text}</p>
                 </div>
@@ -364,7 +373,7 @@ export default function SourcePanel({
           </ScrollArea>
           
           <div className="flex justify-end pt-2 border-t">
-            <Button size="sm" onClick={() => setPreviewSource(null)} className="bg-teal-600 hover:bg-teal-700 text-white rounded-full text-xs font-semibold">
+            <Button size="sm" onClick={() => setPreviewSource(null)} className="bg-[#006a6a] hover:bg-[#005252] text-white rounded-full text-xs font-semibold">
               Dismiss Preview
             </Button>
           </div>

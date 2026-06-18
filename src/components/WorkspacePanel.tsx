@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Send, Bot, User, Sparkles, Trash2, StickyNote, Plus, ChevronLeft, 
-  ChevronRight, AlignLeft, BookOpen, Brush, Download, History, ArrowRight
+  ChevronRight, AlignLeft, BookOpen, Brush, Download, History, ArrowRight, Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ export interface Note {
   title: string;
   content: string;
   lastUpdated: string;
+  color?: string;
 }
 
 interface WorkspacePanelProps {
@@ -43,7 +44,7 @@ interface WorkspacePanelProps {
   onUpdateNote: (id: string, content: string) => void;
   onAddSourceClick: () => void;
   isLoading: boolean;
-  onTriggerCitationHighlight: (chunkText: string) => void; // Trigger Yellow highlights
+  onTriggerCitationHighlight: (chunkText: string) => void; 
 }
 
 export default function WorkspacePanel({
@@ -131,6 +132,11 @@ export default function WorkspacePanel({
     }, 1100);
   };
 
+  const handleClipToNote = (msgText: string) => {
+    onAddNote("Clipped Insight", msgText);
+    showSuccess("Insight clipped to study notebook!");
+  };
+
   return (
     <div className="w-full h-full flex flex-col bg-[#FBFBFB] dark:bg-[#121212] text-left overflow-hidden">
       
@@ -138,8 +144,8 @@ export default function WorkspacePanel({
       <div className="px-5 py-3 border-b border-slate-200 bg-[#FAF9F6] flex items-center justify-between shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'chat' | 'notes')} className="w-auto">
           <TabsList className="bg-slate-200/60 p-0.5 rounded-lg">
-            <TabsTrigger value="chat" className="text-xs font-bold px-4 py-1.5">Chat Synthesis</TabsTrigger>
-            <TabsTrigger value="notes" className="text-xs font-bold px-4 py-1.5">Study Notebook ({activeNotes.length})</TabsTrigger>
+            <TabsTrigger value="chat" className="text-xs font-bold px-4 py-1.5 rounded-md">Chat Synthesis</TabsTrigger>
+            <TabsTrigger value="notes" className="text-xs font-bold px-4 py-1.5 rounded-md">Saved Notes ({activeNotes.length})</TabsTrigger>
           </TabsList>
         </Tabs>
         <Badge className="bg-teal-50 border border-teal-200 text-teal-700 font-extrabold text-[10px] rounded-full px-2.5 py-0.5">
@@ -156,7 +162,7 @@ export default function WorkspacePanel({
               <div className="bg-gradient-to-br from-teal-50/60 via-emerald-50/30 to-white dark:from-slate-900 dark:to-slate-950 p-4 rounded-3xl border border-teal-100/80 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-[#006a6a] text-white flex items-center justify-center">
                       <Sparkles className="w-3.5 h-3.5" />
                     </div>
                     <h3 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">Grounded Study Desk</h3>
@@ -205,7 +211,7 @@ export default function WorkspacePanel({
 
                       <div className="space-y-1 flex-1">
                         <div className={`p-4 rounded-3xl text-xs leading-relaxed whitespace-pre-wrap font-semibold ${
-                          isAI ? 'bg-slate-50 border border-slate-200/80 text-slate-800' : 'bg-teal-600 text-white shadow-sm'
+                          isAI ? 'bg-slate-50 border border-slate-200/80 text-slate-800' : 'bg-[#006a6a] text-white shadow-sm'
                         }`}>
                           {msg.text}
 
@@ -227,9 +233,20 @@ export default function WorkspacePanel({
                             </div>
                           )}
                         </div>
-                        <span className="block text-[9px] text-slate-400 font-semibold px-2">
-                          {msg.timestamp}
-                        </span>
+                        
+                        <div className="flex items-center justify-between px-2 pt-0.5">
+                          <span className="text-[9px] text-slate-400 font-semibold">
+                            {msg.timestamp}
+                          </span>
+                          {isAI && (
+                            <button
+                              onClick={() => handleClipToNote(msg.text)}
+                              className="text-[9px] text-teal-600 hover:text-teal-700 hover:underline font-extrabold flex items-center gap-1"
+                            >
+                              <Save className="w-3 h-3" /> Save to Note
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -268,7 +285,7 @@ export default function WorkspacePanel({
                   <Button
                     onClick={() => handleSendQuery(inputText)}
                     disabled={!inputText.trim() || localLoading}
-                    className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-11 w-11 flex items-center justify-center shrink-0 transition-transform hover:scale-105"
+                    className="bg-[#006a6a] hover:bg-[#005252] text-white rounded-xl h-11 w-11 flex items-center justify-center shrink-0 transition-transform hover:scale-105"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
@@ -278,27 +295,27 @@ export default function WorkspacePanel({
 
           </div>
         ) : (
-          /* Notes panel tab */
-          <div className="h-full overflow-y-auto p-4 bg-[#FAF9F5]/30">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          /* Notes Canvas tab: Replicating Google Keep card layouts */
+          <div className="h-full overflow-y-auto p-5 bg-[#FAF9F5]/40">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               
-              <Card className="p-4 bg-white border-dashed border-teal-200 rounded-2xl flex flex-col justify-between text-left shadow-sm">
+              <Card className="p-4 bg-white border-dashed border-teal-200 rounded-3xl flex flex-col justify-between text-left shadow-sm">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Plus className="w-4.5 h-4.5 text-teal-600" />
-                    <h3 className="font-extrabold text-xs text-slate-800">Notebook takeaways Creator</h3>
+                    <h3 className="font-extrabold text-xs text-slate-800">Add Sticky Note</h3>
                   </div>
                   <Input
-                    placeholder="takeaway title"
+                    placeholder="Note Title"
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
-                    className="h-9 rounded-lg text-xs"
+                    className="h-9 rounded-xl text-xs"
                   />
                   <Textarea
-                    placeholder="Paste formulas, formulas, or general takeaways..."
+                    placeholder="Write custom study takeaway..."
                     value={noteContent}
                     onChange={(e) => setNoteContent(e.target.value)}
-                    className="min-h-[100px] rounded-lg text-xs resize-none"
+                    className="min-h-[100px] rounded-xl text-xs resize-none"
                   />
                 </div>
                 <Button
@@ -310,29 +327,29 @@ export default function WorkspacePanel({
                     onAddNote(noteTitle, noteContent || "Empty study notes.");
                     setNoteTitle('');
                     setNoteContent('');
-                    showSuccess("takeaway note logged!");
+                    showSuccess("Note card logged!");
                   }}
                   size="sm"
-                  className="bg-teal-600 hover:bg-teal-700 text-white w-full rounded-full font-bold text-xs mt-3 flex items-center justify-center gap-1.5"
+                  className="bg-[#006a6a] hover:bg-[#005252] text-white w-full rounded-full font-bold text-xs mt-3 flex items-center justify-center gap-1.5"
                 >
-                  <Plus className="w-4 h-4" /> Save Note
+                  <Plus className="w-4 h-4" /> Save Sticky Note
                 </Button>
               </Card>
 
               {activeNotes.map((note) => (
-                <Card key={note.id} className="p-4 bg-white border border-slate-200 rounded-2xl flex flex-col justify-between text-left shadow-sm">
+                <Card key={note.id} className="p-4 bg-white border border-slate-250 rounded-3xl flex flex-col justify-between text-left shadow-sm hover:shadow-md transition-shadow">
                   <div>
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-xs text-slate-800 truncate pr-6">{note.title}</h3>
+                    <div className="flex items-center justify-between border-b pb-2 mb-2">
+                      <h3 className="font-extrabold text-xs text-slate-800 truncate pr-6">{note.title}</h3>
                       <div className="text-[9px] text-slate-400 font-bold">{note.lastUpdated}</div>
                     </div>
-                    <p className="text-slate-600 text-xs mt-2 leading-relaxed whitespace-pre-wrap max-h-[120px] overflow-y-auto">
+                    <p className="text-slate-600 text-xs mt-1 leading-relaxed whitespace-pre-wrap max-h-[140px] overflow-y-auto font-medium">
                       {note.content}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
-                    <span className="text-[9px] font-bold text-teal-600">freenotebooklmclone.com</span>
+                    <span className="text-[9px] font-extrabold text-[#006a6a] tracking-wide uppercase">Workspace Card</span>
                     <Button
                       variant="ghost"
                       size="icon"

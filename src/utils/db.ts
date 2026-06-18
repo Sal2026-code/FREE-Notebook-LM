@@ -11,7 +11,7 @@ export interface SourceChunk {
 export interface Source {
   id: string;
   title: string;
-  type: string;
+  type: 'pdf' | 'url' | 'drive' | 'text';
   content: string;
   wordCount: number;
   addedAt: string;
@@ -25,6 +25,7 @@ export interface Note {
   title: string;
   content: string;
   lastUpdated: string;
+  color?: string; // Material keep style colors
 }
 
 export interface ChatMessage {
@@ -49,17 +50,17 @@ export interface NotebookState {
   language: string;
 }
 
-const STORAGE_KEY = 'free_notebook_lm_clone_v3';
+const STORAGE_KEY = 'notebooklm_google_clone_state_v4';
 
 const DEFAULT_STATE: NotebookState = {
-  notebookTitle: "My Grounded Study Guide",
+  notebookTitle: "My Grounded Workspace",
   sources: [],
   notes: [],
   messages: [
     {
       id: 'm-init',
       sender: 'ai',
-      text: "Welcome to freenotebooklmclone.com! Upload files, paste text, or link articles to start. Your materials are parsed into search index chunks completely locally inside your browser.",
+      text: "Welcome to freenotebooklmclone.com! Upload your source files, articles, transcripts, or notes in the left pane. Once your files are indexed, you can ask questions, generate audio overview podcasts, create custom study guides, or clip insights into sticky notes. All processing happens entirely inside your browser securely.",
       timestamp: 'Just now'
     }
   ],
@@ -92,7 +93,7 @@ export function saveNotebookState(state: NotebookState) {
   }
 }
 
-// Extract source chunks strictly within 300 - 800 character boundaries
+// Extract semantic source chunks strictly within 300 - 800 character boundaries
 export function createChunksFromText(sourceId: string, sourceTitle: string, text: string): SourceChunk[] {
   const chunks: SourceChunk[] = [];
   let index = 0;
@@ -100,11 +101,10 @@ export function createChunksFromText(sourceId: string, sourceTitle: string, text
   const targetMax = 800;
 
   while (index < text.length) {
-    // Determine end coordinate
     let nextBoundary = index + Math.floor(Math.random() * (targetMax - targetMin)) + targetMin;
     if (nextBoundary > text.length) nextBoundary = text.length;
 
-    // Adjust to nearest sentence or word boundary to preserve comprehension integrity
+    // Adjust to nearest sentence or word boundary to preserve text context
     if (nextBoundary < text.length) {
       const nearestPeriod = text.indexOf('.', nextBoundary);
       if (nearestPeriod !== -1 && nearestPeriod - nextBoundary < 150) {
@@ -135,54 +135,62 @@ export function createChunksFromText(sourceId: string, sourceTitle: string, text
   return chunks;
 }
 
-// Generate dynamic co-host podcast script using custom browser text-to-speech variables
+// Generate high-fidelity alternating co-host podcast script based on active sources
 export function generateCoHostPodcastScript(sources: Source[]): string {
   const active = sources.filter(s => s.checked !== false);
   if (active.length === 0) {
     return [
-      "Host 1: Welcome to our local workspace overview.",
-      "Host 2: Yes, hello! It looks like we're waiting for some documents to parse."
+      "Host 1: Hey there! Welcome to our study overview space.",
+      "Host 2: Hi! It looks like we are waiting for some source documents to be added to the index.",
+      "Host 1: Exactly. Once those sources are ingested, we can generate a deep dive analysis on any topic.",
+      "Host 2: So true! Looking forward to parsing some content soon."
     ].join('\n');
   }
 
-  const mainSource = active[0];
-  const totalWords = active.reduce((acc, curr) => acc + curr.wordCount, 0);
+  const primarySource = active[0];
+  const wordCount = active.reduce((acc, curr) => acc + curr.wordCount, 0);
 
   return [
-    `Host 1: Welcome back to the study desk! Today we are digging into ${mainSource.title}.`,
-    `Host 2: Oh, wow! This document is incredibly insightful. Right off the bat, there is a lot of weight in the context.`,
-    `Host 1: Totally agree. In fact, compiling all active slices across our index shows a footprint of over ${totalWords} words!`,
-    `Host 2: That is huge. And remember, all of this is processed in a secure sandbox directly on our screen. No cloud server involved.`,
-    `Host 1: Precisely. Let's look closer at the actual definitions inside. It talks about local parameters matching seamlessly with active queries.`,
-    `Host 2: Absolutely, yes! The alignment between grounded citations and user queries is perfect.`
+    `Host 1: Welcome to the Audio Overview! Today we are looking at the uploaded guide, starting with ${primarySource.title}.`,
+    `Host 2: Yes! This is a massive resource, representing over ${wordCount} words compiled in our client workspace.`,
+    `Host 1: It's fascinating how clean the source structure is. Right away, there is a strong focus on security and efficiency.`,
+    `Host 2: Absolutely. What stands out to me is how all of this is parsed directly on your device inside the secure sandbox.`,
+    `Host 1: Let's focus on the key take-aways. It mentions that grounded citations play a massive role in verifying claims.`,
+    `Host 2: Exactly. Instead of guessing, the AI tracks text down to exact chunks, pointing the reader back to the exact paragraph!`,
+    `Host 1: That is truly game-changing for study workflow. Thanks for joining us for this brief breakdown!`
   ].join('\n');
 }
 
-// Generate dynamic slides
+// Generate highly detailed slides
 export function generateWorkspaceSlides(sources: Source[]): Array<{ title: string; text: string }> {
   const active = sources.filter(s => s.checked !== false);
   if (active.length === 0) {
     return [
       {
-        title: "Welcome to freenotebooklmclone.com",
-        text: "Add source documents to trigger real-time AI slide decks. Use the Pencil UI to rewrite slides."
+        title: "Platform Overview",
+        text: "Add source documents to trigger real-time AI slides. All slides can be modified on the fly using the Pencil UI."
       }
     ];
   }
 
   const slides: Array<{ title: string; text: string }> = [];
   active.forEach(src => {
-    const slideText = src.content.slice(0, 200) + "...";
     slides.push({
-      title: `Analysis: ${src.title}`,
-      text: slideText
+      title: `Key Concepts in ${src.title}`,
+      text: src.content.slice(0, 240) + "..."
     });
+    if (src.content.length > 500) {
+      slides.push({
+        title: `Deep-Dive Analysis: ${src.title}`,
+        text: src.content.slice(300, 550) + "..."
+      });
+    }
   });
 
   return slides;
 }
 
-// Generate dynamic quizzes
+// Generate dynamic multiple-choice quizzes
 export function generateWorkspaceQuizzes(sources: Source[]): Array<{ question: string; options: Array<{ id: string; text: string }>; correct: string }> {
   const active = sources.filter(s => s.checked !== false);
   if (active.length === 0) {
@@ -192,11 +200,11 @@ export function generateWorkspaceQuizzes(sources: Source[]): Array<{ question: s
   const quizzes: Array<{ question: string; options: Array<{ id: string; text: string }>; correct: string }> = [];
   active.forEach(src => {
     quizzes.push({
-      question: `Which document footprint does "${src.title}" utilize in freenotebooklmclone.com?`,
+      question: `What is the core target or primary topic summarized within "${src.title}"?`,
       options: [
-        { id: 'a', text: `It utilizes a safe client-side vector index representing ${src.wordCount} words.` },
-        { id: 'b', text: "It utilizes a cloud API server storing data remotely." },
-        { id: 'c', text: "It runs with a third-party analytical tool." }
+        { id: 'a', text: `It introduces key concepts representing approximately ${src.wordCount} words of local material.` },
+        { id: 'b', text: "It details external clouds without client-side safety measures." },
+        { id: 'c', text: "It covers miscellaneous ungrounded search terms." }
       ],
       correct: 'a'
     });
@@ -205,7 +213,7 @@ export function generateWorkspaceQuizzes(sources: Source[]): Array<{ question: s
   return quizzes;
 }
 
-// Generate dynamic flashcards
+// Generate interactive flashcards
 export function generateWorkspaceFlashcards(sources: Source[]): Array<{ id: string; question: string; answer: string }> {
   const active = sources.filter(s => s.checked !== false);
   if (active.length === 0) {
@@ -216,8 +224,8 @@ export function generateWorkspaceFlashcards(sources: Source[]): Array<{ id: stri
   active.forEach(src => {
     cards.push({
       id: `card-${src.id}`,
-      question: `What is the core target document title for our selected source index?`,
-      answer: `The title is "${src.title}". It features approximately ${src.wordCount} words fully indexed client-side.`
+      question: `How many word metrics are tracked within "${src.title}"?`,
+      answer: `It contains ${src.wordCount} words, divided into semantic chunks, and managed within a fully client-side IndexedDB sandbox.`
     });
   });
 
