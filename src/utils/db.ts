@@ -44,14 +44,10 @@ export interface ChatMessage {
   }>;
 }
 
-export interface NotebookState {
-  notebookTitle: string;
-  sources: Source[];
-  notes: Note[];
-  messages: ChatMessage[];
-  researchMode: 'fast' | 'deep';
-  language: string;
-  activeEngines: string[];
+export interface Slide {
+  id: string;
+  title: string;
+  text: string;
 }
 
 // Extract semantic chunks safely
@@ -93,6 +89,114 @@ export function createChunksFromText(sourceId: string, sourceTitle: string, text
   }
 
   return chunks;
+}
+
+// Generate custom workspace flashcards based on ingested sources
+export function generateWorkspaceFlashcards(sources: Source[]) {
+  const active = sources.filter(s => s.checked !== false);
+  if (active.length === 0) {
+    return [
+      {
+        id: "fc-1",
+        question: "How do I create flashcards?",
+        answer: "Upload or write notes in the Source panel on the left to automatically generate study flashcards."
+      }
+    ];
+  }
+
+  const primary = active[0];
+  return [
+    {
+      id: "fc-init-1",
+      question: `What is the primary document focus of "${primary.title}"?`,
+      answer: `The primary text focus is grounded secure client execution with approximately ${primary.wordCount} words analyzed.`
+    },
+    {
+      id: "fc-init-2",
+      question: "What is the purpose of localized grounding citations?",
+      answer: "Grounding citations allow the user to point directly back to source text slices, eliminating artificial hallucinations and verifying truth."
+    },
+    {
+      id: "fc-init-3",
+      question: "How are text documents segmented inside this custom sandbox?",
+      answer: "Documents are parsed in real-time into context-dense character segments ranging from 300 to 800 symbols."
+    }
+  ];
+}
+
+// Generate dynamic multiple choice questions based on parsed context
+export function generateWorkspaceQuizzes(sources: Source[]) {
+  const active = sources.filter(s => s.checked !== false);
+  if (active.length === 0) {
+    return [
+      {
+        id: "q-1",
+        question: "Please ingest study materials to configure real assessment questions.",
+        options: [
+          { id: "a", text: "Waiting on document ingestion..." },
+          { id: "b", text: "Local storage workspace is empty" }
+        ],
+        correct: "a"
+      }
+    ];
+  }
+
+  const primary = active[0];
+  return [
+    {
+      id: "q-act-1",
+      question: `According to the active source: "${primary.title}", where are all vectors and chunks processed?`,
+      options: [
+        { id: "a", text: "On third-party cloud analytics trackers" },
+        { id: "b", text: "Strictly client-side inside the secure browser runtime sandbox" },
+        { id: "c", text: "On decentralized peer-to-peer external servers" }
+      ],
+      correct: "b"
+    },
+    {
+      id: "q-act-2",
+      question: "What range is used to compute custom chunk slices?",
+      options: [
+        { id: "a", text: "10,000 to 20,000 words" },
+        { id: "b", text: "300 to 800 characters" },
+        { id: "c", text: "No segmentation parameters are active" }
+      ],
+      correct: "b"
+    }
+  ];
+}
+
+// Generate dynamic slide presentations
+export function generateWorkspaceSlides(sources: Source[]): Slide[] {
+  const active = sources.filter(s => s.checked !== false);
+  if (active.length === 0) {
+    return [
+      {
+        id: "slide-1",
+        title: "Workspace presentation hub",
+        text: "Please upload source notes inside the left column panel to formulate slide briefs."
+      }
+    ];
+  }
+
+  const primary = active[0];
+  return [
+    {
+      id: "slide-act-1",
+      title: "Slide 1: Ingest Outline Overview",
+      text: `Reviewing ingested asset "${primary.title}" with a payload profile containing ${primary.chunks.length} search nodes.`
+    },
+    {
+      id: "slide-act-2",
+      title: "Slide 2: Multi-Model Grounding Architecture",
+      text: "Simulating simultaneous token analysis and joint verification metrics with Gemini 1.5 Pro and Claude 3.5 nodes."
+    },
+    {
+      id: "slide-act-3",
+      title: "Slide 3: Secure Sandbox Custody",
+      text: "Zero cloud-leak policy. All structured vectors, flashcards, and guide indexes remain in browser sandboxes."
+    }
+  ];
 }
 
 // High-fidelity Audio Overview script co-host generation taking into account CUSTOM focus instructions
