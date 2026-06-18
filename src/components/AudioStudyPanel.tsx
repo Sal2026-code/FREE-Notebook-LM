@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Headphones, Play, Pause, RotateCcw, Volume2, LayoutGrid, HelpCircle, 
-  Map, FileText, Calendar, Compass, ChevronLeft, ChevronRight, Edit3, Check
+  Map, FileText, Calendar, Compass, ChevronLeft, ChevronRight, Edit3, Check, CheckSquare, Settings2, Sliders, BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { showSuccess, showError } from '@/utils/toast';
-import { QuizQuestion, Slide, generateCoHostPodcastScript } from '@/utils/db';
+import { QuizQuestion, Slide, generateCoHostPodcastScript, compileStudyGuide, Source } from '@/utils/db';
 
 export interface Flashcard {
   id: string;
@@ -30,7 +30,7 @@ interface AudioStudyPanelProps {
   flashcards: Flashcard[];
   quizzes: any[];
   slides: Slide[];
-  sources: any[];
+  sources: Source[];
   onGenerateFlashcards: () => void;
   isGeneratingFlashcards: boolean;
   onUpdateSlides: (newSlides: Slide[]) => void;
@@ -48,8 +48,9 @@ export default function AudioStudyPanel({
   isGeneratingFlashcards,
   onUpdateSlides
 }: AudioStudyPanelProps) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'podcast' | 'flashcards' | 'quiz' | 'slides'>('presets');
-  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'podcast' | 'studio-guides' | 'flashcards' | 'quiz' | 'slides'>('podcast');
+  const [podcastInstructions, setPodcastInstructions] = useState("");
+  const [appliedInstructions, setAppliedInstructions] = useState("");
 
   // Podcast state variables
   const [isPlaying, setIsPlaying] = useState(false);
@@ -60,14 +61,19 @@ export default function AudioStudyPanel({
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const scriptText = React.useMemo(() => {
-    return generateCoHostPodcastScript(sources);
-  }, [sources]);
+    return generateCoHostPodcastScript(sources, appliedInstructions);
+  }, [sources, appliedInstructions]);
 
   const scriptLines = React.useMemo(() => {
     return scriptText
       .split('\n')
       .filter(line => line.startsWith('Host 1:') || line.startsWith('Host 2:'));
   }, [scriptText]);
+
+  // Compile deep Study Guide assets
+  const studyGuide = React.useMemo(() => {
+    return compileStudyGuide(sources);
+  }, [sources]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -117,8 +123,10 @@ export default function AudioStudyPanel({
     utteranceRef.current = utterance;
 
     const voices = synthRef.current.getVoices();
+    // Host 1: Male or standard US voice
     const host1Voice = voices.find(v => v.name.includes('Google US English') || v.lang.startsWith('en-US')) || voices[0];
-    const host2Voice = voices.find(v => v.name.includes('Google UK English') || v.lang.startsWith('en-GB') || v.name.includes('Samantha')) || voices[1] || voices[0];
+    // Host 2: Female / British voice
+    const host2Voice = voices.find(v => v.name.includes('Google UK English') || v.lang.startsWith('en-GB') || v.name.includes('Samantha') || v.name.includes('Zira')) || voices[1] || voices[0];
 
     if (isHost1) {
       if (host1Voice) utterance.voice = host1Voice;
@@ -147,7 +155,13 @@ export default function AudioStudyPanel({
     showSuccess("Podcast tracking reset.");
   };
 
-  // Flashcards 3D flip-matrix state
+  const applyPodcastInstructions = () => {
+    setAppliedInstructions(podcastInstructions);
+    handleResetPodcast();
+    showSuccess("Rebuilt audio overview using focus criteria!");
+  };
+
+  // Flashcards flip-matrix state
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [cardStats, setCardStats] = useState({ mastered: 0, reviewing: 0 });
@@ -218,7 +232,7 @@ export default function AudioStudyPanel({
       updated[currentSlideIndex].text = pencilFeedback;
       onUpdateSlides(updated);
       setPencilFeedback("");
-      showSuccess("Pencil UI: rewritten slide context successfully!");
+      showSuccess("Rewritten slide context successfully!");
     }
   };
 
@@ -228,162 +242,56 @@ export default function AudioStudyPanel({
       {/* Studio Navigation Tab Ribbon */}
       <div className="p-3 bg-white dark:bg-slate-900 border-b border-slate-200/60 flex flex-wrap gap-1 items-center shrink-0">
         <button
-          onClick={() => setActiveTab('presets')}
-          className={`px-2 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
-            activeTab === 'presets' ? 'bg-teal-600 text-white' : 'text-slate-600'
+          onClick={() => setActiveTab('podcast')}
+          className={`px-3 py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+            activeTab === 'podcast' ? 'bg-[#006a6a] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          Study Presets
+          Co-Hosts Audio
         </button>
         <button
-          onClick={() => setActiveTab('podcast')}
-          className={`px-2 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
-            activeTab === 'podcast' ? 'bg-teal-600 text-white' : 'text-slate-600'
+          onClick={() => setActiveTab('studio-guides')}
+          className={`px-3 py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+            activeTab === 'studio-guides' ? 'bg-[#006a6a] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          Co-Hosts Podcast
+          Guides & FAQ
         </button>
         <button
           onClick={() => setActiveTab('flashcards')}
-          className={`px-2 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
-            activeTab === 'flashcards' ? 'bg-teal-600 text-white' : 'text-slate-600'
+          className={`px-3 py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+            activeTab === 'flashcards' ? 'bg-[#006a6a] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          Flashcards ({flashcards.length})
+          Cards ({flashcards.length})
         </button>
         <button
           onClick={() => setActiveTab('quiz')}
-          className={`px-2 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
-            activeTab === 'quiz' ? 'bg-teal-600 text-white' : 'text-slate-600'
+          className={`px-3 py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+            activeTab === 'quiz' ? 'bg-[#006a6a] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          Live Quizzes ({quizzes.length})
+          Quizzes
         </button>
         <button
           onClick={() => setActiveTab('slides')}
-          className={`px-2 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
-            activeTab === 'slides' ? 'bg-teal-600 text-white' : 'text-slate-600'
+          className={`px-3 py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+            activeTab === 'slides' ? 'bg-[#006a6a] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          Canvas Slides
+          Slides
         </button>
       </div>
 
       <ScrollArea className="flex-1 p-4">
         
-        {/* PRESET COMMAND GRID PANEL */}
-        {activeTab === 'presets' && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700">
-              <LayoutGrid className="w-4 h-4 text-teal-600" />
-              STUDIO PRESETS COMMAND GRID
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'accordion', label: "Study Accordions", icon: <Compass className="w-4 h-4" /> },
-                { id: 'faq', label: "Dynamic FAQ Sheets", icon: <HelpCircle className="w-4 h-4" /> },
-                { id: 'grid', label: "Guide Matrix Grids", icon: <LayoutGrid className="w-4 h-4" /> },
-                { id: 'timeline', label: "Milestone Timelines", icon: <Calendar className="w-4 h-4" /> },
-                { id: 'mindmap', label: "Interactive Mindmaps", icon: <Map className="w-4 h-4" /> },
-                { id: 'report', label: "Dossier Summaries", icon: <FileText className="w-4 h-4" /> }
-              ].map(cmd => (
-                <button
-                  key={cmd.id}
-                  onClick={() => {
-                    setActivePreset(cmd.id);
-                    showSuccess(`Loaded template preset: ${cmd.label}`);
-                  }}
-                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all group ${
-                    activePreset === cmd.id
-                      ? 'border-teal-500 bg-teal-50/40'
-                      : 'border-slate-200 bg-white hover:border-teal-200'
-                  }`}
-                >
-                  <div className="text-teal-600 group-hover:scale-105 transition-transform">{cmd.icon}</div>
-                  <span className="text-[11px] font-bold text-slate-700 mt-3 block">{cmd.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {activePreset && (
-              <Card className="p-4 border border-teal-100 bg-white dark:bg-slate-950 rounded-2xl mt-4">
-                {sources.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 italic">No sources selected. Please ingest files in left panel first.</p>
-                ) : (
-                  <>
-                    {activePreset === 'accordion' && (
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="item-1" className="border-none">
-                          <AccordionTrigger className="text-xs font-bold py-1.5 hover:no-underline">Segmented Focus Detail</AccordionTrigger>
-                          <AccordionContent className="text-[11px] text-slate-500 leading-relaxed">
-                            {sources[0]?.content.slice(0, 250)}...
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    )}
-
-                    {activePreset === 'faq' && (
-                      <div className="space-y-2">
-                        <h4 className="text-xs font-bold text-slate-800">Q: What is the footprint of this loaded source?</h4>
-                        <p className="text-[11px] text-slate-500 leading-normal">A: It comprises approximately {sources[0]?.wordCount} indexed words.</p>
-                      </div>
-                    )}
-
-                    {activePreset === 'grid' && (
-                      <div className="grid grid-cols-2 gap-2 text-[10px]">
-                        <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
-                          <strong className="block mb-0.5">Title</strong>
-                          {sources[0]?.title}
-                        </div>
-                        <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
-                          <strong className="block mb-0.5">Slices</strong>
-                          {sources[0]?.chunks.length} active chunks
-                        </div>
-                      </div>
-                    )}
-
-                    {activePreset === 'timeline' && (
-                      <div className="space-y-3 relative pl-4 border-l border-teal-200">
-                        <div>
-                          <strong className="text-[11px] block">Checkpoint: Ingest Node</strong>
-                          <span className="text-[10px] text-slate-500">Document parsed cleanly on {sources[0]?.addedAt}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {activePreset === 'mindmap' && (
-                      <div className="space-y-1 text-xs">
-                        <div className="font-bold text-teal-700">{sources[0]?.title}</div>
-                        <div className="pl-4 border-l border-slate-200 text-[11px] space-y-1">
-                          <div>├─ Core Vector Slices</div>
-                          <div>└─ Local Highlights Timeline</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {activePreset === 'report' && (
-                      <div className="space-y-2">
-                        <span className="text-[9px] font-extrabold uppercase tracking-wide text-teal-600">Secure Audit Report</span>
-                        <p className="text-[11px] leading-relaxed text-slate-600">
-                          Secure database parsing checked for active index: {sources[0]?.title}.
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* CO-HOST PODCAST PLAYBACK */}
+        {/* PODCAST PANEL WITH FOCUS INPUTS */}
         {activeTab === 'podcast' && (
           <div className="space-y-4">
             <Card className="p-5 border-none shadow-sm bg-slate-900 text-white rounded-3xl relative overflow-hidden">
               <div className="space-y-4 relative z-10">
                 <Badge className="bg-teal-500 text-slate-900 border-none rounded-md px-2 py-0.5 font-bold text-[9px] uppercase">
-                  NATIVE BROWSER SPEECH SYNTHESIS ENGINE
+                  NATIVE BROWSER SPEECH SYNTHESIS
                 </Badge>
 
                 <div>
@@ -391,10 +299,11 @@ export default function AudioStudyPanel({
                     {sources[0]?.title || "Workspace Overview"} Podcast
                   </h3>
                   <p className="text-slate-400 text-[10px] leading-normal mt-1">
-                    Alternating Host 1 (US Voice) and Host 2 (UK/Samantha Voice) with natural filler expressions, running entirely client-side.
+                    Alternating Host 1 (Specialist) and Host 2 (Interviewer) with conversational dialog flow.
                   </p>
                 </div>
 
+                {/* Animated waves visualizer */}
                 <div className="h-10 flex items-end justify-center gap-1.5 py-1 bg-slate-950/40 rounded-xl px-2">
                   {[...Array(16)].map((_, i) => (
                     <div
@@ -411,7 +320,7 @@ export default function AudioStudyPanel({
                 <Progress value={podcastProgress} className="h-1.5 bg-slate-800" />
 
                 <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                  <span>Speaking: Line {currentLineIndex + 1} of {scriptLines.length}</span>
+                  <span>Line {currentLineIndex + 1} of {scriptLines.length}</span>
                   <span>{podcastProgress}%</span>
                 </div>
 
@@ -430,7 +339,7 @@ export default function AudioStudyPanel({
                     className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-2 rounded-full text-xs shadow-md flex items-center gap-1.5"
                   >
                     {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    {isPlaying ? "Pause Briefing" : "Play Briefing"}
+                    {isPlaying ? "Pause Overview" : "Play Overview"}
                   </Button>
 
                   <div className="flex items-center gap-1 text-teal-400 font-mono text-[10px]">
@@ -442,8 +351,33 @@ export default function AudioStudyPanel({
               </div>
             </Card>
 
-            {/* Alternating script script timeline */}
-            <div className="space-y-2.5 pt-2">
+            {/* CUSTOM AUDIO INSTRUCTION WIDGET (NotebookLM New Feature!) */}
+            <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl space-y-3 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <Settings2 className="w-4 h-4 text-[#006a6a]" />
+                <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">Customize Audio Focus</h4>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                Direct the co-hosts! Try: <span className="font-bold">"explain like I am 5"</span>, <span className="font-bold">"make it funny"</span>, or <span className="font-bold">"deeply technical"</span>.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={podcastInstructions}
+                  onChange={(e) => setPodcastInstructions(e.target.value)}
+                  placeholder="Enter custom focus instructions..."
+                  className="h-9 text-xs rounded-xl focus-visible:ring-[#006a6a] border-slate-200"
+                />
+                <Button 
+                  onClick={applyPodcastInstructions}
+                  className="bg-[#006a6a] hover:bg-[#005252] text-white text-xs font-bold rounded-xl h-9 px-3"
+                >
+                  Apply
+                </Button>
+              </div>
+            </Card>
+
+            {/* Dialog transcript script timeline */}
+            <div className="space-y-2 pt-2">
               <span className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase block">
                 Dialogue Timeline Transcript
               </span>
@@ -453,16 +387,14 @@ export default function AudioStudyPanel({
                   key={idx}
                   className={`p-3 rounded-2xl border transition-all ${
                     idx === currentLineIndex && isPlaying
-                      ? 'border-teal-500 bg-white dark:bg-slate-900 shadow-sm'
-                      : 'border-slate-200/60 bg-slate-100/40 dark:bg-slate-900/40'
+                      ? 'border-teal-500 bg-teal-50/20 shadow-sm'
+                      : 'border-slate-200/60 bg-white'
                   }`}
                 >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-extrabold text-slate-800 dark:text-slate-200">
-                      {line.startsWith('Host 1:') ? "Host 1 (Academic Specialist)" : "Host 2 (Interviewer)"}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <span className="text-[9px] font-extrabold text-teal-700 block mb-0.5">
+                    {line.startsWith('Host 1:') ? "Host 1 (Lead Specialist)" : "Host 2 (Interviewer)"}
+                  </span>
+                  <p className="text-[11px] text-slate-700 leading-relaxed">
                     {line.replace(/^Host [12]:\s*/i, '')}
                   </p>
                 </div>
@@ -471,14 +403,83 @@ export default function AudioStudyPanel({
           </div>
         )}
 
-        {/* 3D MATRIX FLASHCARDS SYSTEM */}
+        {/* STUDY GUIDES HUB */}
+        {activeTab === 'studio-guides' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-1.5 text-xs font-black text-slate-700 tracking-wide uppercase">
+              <BookOpen className="w-4 h-4 text-[#006a6a]" />
+              Notebook Guide Studio
+            </div>
+
+            <Accordion type="single" collapsible className="w-full space-y-2">
+              
+              <AccordionItem value="faq" className="border border-slate-200 bg-white rounded-2xl px-4 py-1">
+                <AccordionTrigger className="text-xs font-bold hover:no-underline text-slate-800">
+                  📋 Dynamic FAQ Study Sheet
+                </AccordionTrigger>
+                <AccordionContent className="space-y-3 pt-2 text-[11px] text-slate-600 leading-relaxed border-t border-slate-100">
+                  {studyGuide.faq.map((item, idx) => (
+                    <div key={idx} className="space-y-1 bg-slate-50 p-2.5 rounded-xl border">
+                      <strong className="block text-slate-800 font-bold">Q: {item.question}</strong>
+                      <p>A: {item.answer}</p>
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="brief" className="border border-slate-200 bg-white rounded-2xl px-4 py-1">
+                <AccordionTrigger className="text-xs font-bold hover:no-underline text-slate-800">
+                  📄 Comprehensive Briefing Document
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 text-[11px] text-slate-600 leading-relaxed border-t border-slate-100 whitespace-pre-wrap font-medium">
+                  {studyGuide.briefing}
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="timeline" className="border border-slate-200 bg-white rounded-2xl px-4 py-1">
+                <AccordionTrigger className="text-xs font-bold hover:no-underline text-slate-800">
+                  ⏳ Chronological Milestone Timeline
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-2 border-t border-slate-100">
+                  <div className="relative border-l border-teal-200 pl-4 ml-1 space-y-4">
+                    {studyGuide.timeline.map((item, idx) => (
+                      <div key={idx} className="relative">
+                        <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-4 ring-white" />
+                        <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">{item.date}</span>
+                        <strong className="block text-xs text-slate-800 font-bold mt-1">{item.event}</strong>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="glossary" className="border border-slate-200 bg-white rounded-2xl px-4 py-1">
+                <AccordionTrigger className="text-xs font-bold hover:no-underline text-slate-800">
+                  📖 Terminology Glossary
+                </AccordionTrigger>
+                <AccordionContent className="space-y-2 pt-2 border-t border-slate-100 text-[11px]">
+                  {studyGuide.glossary.map((g, idx) => (
+                    <div key={idx} className="flex justify-between gap-4 p-2 bg-slate-50 rounded-lg border">
+                      <strong className="text-teal-700 font-bold shrink-0">{g.term}</strong>
+                      <span className="text-slate-600">{g.definition}</span>
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+
+            </Accordion>
+          </div>
+        )}
+
+        {/* 3D FLASHCARDS SYSTEM */}
         {activeTab === 'flashcards' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">3D MATRIX FLASHCARDS</span>
+              <span className="text-xs font-bold text-slate-700">STUDY FLASHCARDS</span>
               <div className="flex gap-2 text-[10px] font-bold">
                 <Badge className="bg-emerald-50 text-emerald-700 border-none">Mastered: {cardStats.mastered}</Badge>
-                <Badge className="bg-rose-50 text-rose-700 border-none">Reviewing: {cardStats.reviewing}</Badge>
+                <Badge className="bg-rose-50 text-rose-700 border-none">Review: {cardStats.reviewing}</Badge>
               </div>
             </div>
 
@@ -497,7 +498,7 @@ export default function AudioStudyPanel({
                       isFlipped ? '[transform:rotateY(180deg)]' : ''
                     }`}
                   >
-                    {/* Front slide */}
+                    {/* Front */}
                     <Card className="absolute inset-0 w-full h-full p-5 bg-white border border-slate-200 rounded-3xl flex flex-col justify-between shadow-sm [backface-visibility:hidden]">
                       <div className="space-y-2">
                         <span className="text-[9px] font-extrabold tracking-wider text-teal-600 uppercase">Flash Evaluator</span>
@@ -508,7 +509,7 @@ export default function AudioStudyPanel({
                       <span className="text-[9px] font-bold text-slate-400 self-end">Click card to flip</span>
                     </Card>
 
-                    {/* Back slide */}
+                    {/* Back */}
                     <Card className="absolute inset-0 w-full h-full p-5 bg-teal-600 text-white rounded-3xl flex flex-col justify-between shadow-md [backface-visibility:hidden] [transform:rotateY(180deg)]">
                       <div className="space-y-2">
                         <span className="text-[9px] font-extrabold tracking-wider text-teal-200 uppercase font-mono">Answer Context</span>
@@ -546,7 +547,7 @@ export default function AudioStudyPanel({
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-xs font-bold text-slate-700">Quiz Matrix Assessment</span>
-              <Badge className="bg-teal-50 text-teal-700 text-[10px]">Footprint matches: {score}</Badge>
+              <Badge className="bg-teal-50 text-teal-700 text-[10px]">Score: {score}</Badge>
             </div>
 
             {quizzes.length === 0 ? (
@@ -600,7 +601,7 @@ export default function AudioStudyPanel({
                     onClick={handleNextQuiz}
                     className="w-full bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs h-10"
                   >
-                    Next ASSESSMENT Question
+                    Next Questions
                   </Button>
                 )}
               </Card>
@@ -608,7 +609,7 @@ export default function AudioStudyPanel({
           </div>
         )}
 
-        {/* PRESENTATION SLIDES CANVAS WITH PENCIL FEEDBACK */}
+        {/* CANVAS PRESENTATION SLIDES */}
         {activeTab === 'slides' && (
           <div className="space-y-4">
             <span className="text-xs font-bold text-slate-700 block">Workspace Slide Decks</span>
@@ -631,7 +632,7 @@ export default function AudioStudyPanel({
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 
-                <span className="text-[10px] font-bold text-slate-400">Pencil UI Slide Editor</span>
+                <span className="text-[10px] font-bold text-slate-400">Slide Canvas Control</span>
 
                 <Button 
                   disabled={currentSlideIndex + 1 >= slides.length} 
@@ -647,7 +648,7 @@ export default function AudioStudyPanel({
 
             <div className="p-3 bg-white border border-slate-200 rounded-2xl space-y-2">
               <label className="text-[10px] font-extrabold text-slate-700 block">
-                Pencil Feedback: Rewrite current slide context
+                Pencil UI Slide Editor
               </label>
               <div className="flex gap-2">
                 <Input
@@ -661,7 +662,7 @@ export default function AudioStudyPanel({
                   size="sm" 
                   className="bg-teal-600 hover:bg-teal-700 text-white rounded-lg h-8.5 px-3 font-bold text-xs"
                 >
-                  Rewrite Context
+                  Apply Rewrite
                 </Button>
               </div>
             </div>
