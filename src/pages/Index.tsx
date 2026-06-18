@@ -242,11 +242,6 @@ The Guide Studio automatically parses selected grounding documents into 4 core p
           <p className="text-slate-500 text-sm font-semibold leading-relaxed max-w-3xl">
             Create structured notebooks, ingest study materials, and build client-side vector search mappings. All files stay fully secure on this device.
           </p>
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-[11px] font-bold text-[#1a73e8] bg-[#e8f0fe] px-3 py-1 rounded-full flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Pages 55-77 Plan Structure Active
-            </span>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
