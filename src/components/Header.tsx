@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { BookOpen, Share2, Globe, Laptop, Sun, Moon, Database, Edit2, Check, Download, Upload } from 'lucide-react';
+import { BookOpen, Share2, Globe, Laptop, Sun, Moon, Database, Edit2, Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -61,7 +61,7 @@ export default function Header({
 
   const handleImport = () => {
     if (!importText.trim()) {
-      showError("Please paste a valid export backup string.");
+      showError("Please paste a valid backup string.");
       return;
     }
     importDatabase(importText);
@@ -106,7 +106,7 @@ export default function Header({
           )}
 
           <Badge variant="outline" className="border-teal-200 text-teal-700 bg-teal-50 dark:bg-teal-950/30 dark:text-teal-400 font-semibold text-[10px] rounded-full px-2 py-0 shrink-0">
-            absolutelyfreenotebooklm.com
+            freenotebooklmclone.com
           </Badge>
         </div>
       </div>
@@ -136,11 +136,10 @@ export default function Header({
           <DialogContent className="max-w-md bg-white p-6 rounded-2xl border border-slate-200 text-left">
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Database className="w-5 h-5 text-teal-600" />
-                IndexedDB Local Backup Share
+                <Database className="w-5 h-5 text-teal-600" /> Secure Indexed Backup
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 mt-1">
-                Your study guides are securely indexed inside your browser client storage. Export or restore your sessions here.
+                Download or restore database indices safely inside client sandboxes.
               </DialogDescription>
             </DialogHeader>
 
@@ -150,21 +149,19 @@ export default function Header({
                   onClick={exportDatabase} 
                   className="flex-1 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold gap-1.5"
                 >
-                  <Download className="w-4 h-4" />
-                  Copy Backup JSON
+                  <Download className="w-4 h-4" /> Copy Backup
                 </Button>
                 <Button 
                   onClick={handleCopyShare}
                   variant="outline" 
                   className="flex-1 border-slate-200 rounded-xl text-xs font-semibold gap-1.5 text-slate-700"
                 >
-                  <Share2 className="w-4 h-4 text-teal-600" />
-                  Share Platform
+                  <Share2 className="w-4 h-4 text-teal-600" /> Share Clone
                 </Button>
               </div>
 
               <div className="border-t pt-4">
-                <label className="text-xs font-bold text-slate-700 block mb-1.5">Restore Session</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Restore session payload</label>
                 <Input
                   placeholder="Paste export backup JSON string..."
                   value={importText}

@@ -14,28 +14,30 @@ import {
   loadNotebookState, 
   saveNotebookState, 
   NotebookState, 
-  generateDynamicFlashcards, 
-  generateDynamicQuizzes, 
-  generateDynamicSlides,
+  generateWorkspaceFlashcards, 
+  generateWorkspaceQuizzes, 
+  generateWorkspaceSlides,
+  createChunksFromText,
   Slide
 } from '@/utils/db';
 
 export default function Index() {
   const [state, setState] = useState<NotebookState>({
-    notebookTitle: "My Clean Workspace",
+    notebookTitle: "My Grounded Study Guide",
     sources: [],
     notes: [],
     messages: [
       {
         id: 'm-init',
         sender: 'ai',
-        text: "Welcome to absolutelyfreenotebooklm.com! Start by uploading your files, links, or notes in the left pane. All processing and indexing are done securely and privately inside your web browser.",
+        text: "Welcome to freenotebooklmclone.com! Start by uploading your files, links, or notes in the left pane. All processing and indexing are done securely and privately inside your web browser.",
         timestamp: 'Just now'
       }
     ],
     researchMode: 'fast',
     language: 'en'
   });
+  
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasAudio, setHasAudio] = useState(false);
@@ -43,21 +45,22 @@ export default function Index() {
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
 
   const [editedSlides, setEditedSlides] = useState<Slide[]>([]);
+  const [highlightedChunkText, setHighlightedChunkText] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     saveNotebookState(state);
   }, [state]);
 
   const dynamicFlashcards = useMemo(() => {
-    return generateDynamicFlashcards(state.sources);
+    return generateWorkspaceFlashcards(state.sources);
   }, [state.sources]);
 
   const dynamicQuizzes = useMemo(() => {
-    return generateDynamicQuizzes(state.sources);
+    return generateWorkspaceQuizzes(state.sources);
   }, [state.sources]);
 
   const baseSlides = useMemo(() => {
-    return generateDynamicSlides(state.sources);
+    return generateWorkspaceSlides(state.sources);
   }, [state.sources]);
 
   useEffect(() => {
@@ -93,14 +96,21 @@ export default function Index() {
     }
   };
 
-  const handleAddSource = (newSource: Omit<Source, 'id' | 'addedAt' | 'wordCount'>) => {
+  const handleAddSource = (newSource: Omit<Source, 'id' | 'addedAt' | 'wordCount' | 'chunks'>) => {
+    const sourceId = Math.random().toString();
+    const sourceTitle = newSource.title;
+    const content = newSource.content;
+    const chunks = createChunksFromText(sourceId, sourceTitle, content);
+
     const fresh: Source = {
       ...newSource,
-      id: Math.random().toString(),
-      wordCount: newSource.content.split(/\s+/).filter(Boolean).length,
+      id: sourceId,
+      wordCount: content.split(/\s+/).filter(Boolean).length,
       addedAt: new Date().toLocaleDateString(),
-      checked: true
+      checked: true,
+      chunks
     };
+
     setState(prev => ({
       ...prev,
       sources: [...prev.sources, fresh]
@@ -118,13 +128,6 @@ export default function Index() {
     }
   };
 
-  const handleRenameSource = (id: string, newTitle: string) => {
-    setState(prev => ({
-      ...prev,
-      sources: prev.sources.map(s => s.id === id ? { ...s, title: newTitle } : s)
-    }));
-  };
-
   const handleToggleCheckSource = (id: string) => {
     setState(prev => ({
       ...prev,
@@ -138,7 +141,7 @@ export default function Index() {
       return;
     }
     setState(prev => {
-      const updated = prev.sources.map((src, idx) => {
+      const updated = prev.sources.map((src) => {
         let folder = "Dossier Studies";
         if (src.type === 'pdf') folder = "Uploaded PDFs";
         else if (src.type === 'url') folder = "Webpages & Media transcripts";
@@ -154,7 +157,7 @@ export default function Index() {
   };
 
   const handleAddNote = (title: string, content: string) => {
-    const fresh: Note = {
+    const fresh = {
       id: Math.random().toString(),
       title,
       content,
@@ -170,8 +173,24 @@ export default function Index() {
   const handleUpdateNote = (id: string, content: string) => {
     setState(prev => ({
       ...prev,
-      sources: prev.notes.map(n => n.id === id ? { ...n, content, lastUpdated: 'Just now' } : n)
+      notes: prev.notes.map(n => n.id === id ? { ...n, content, lastUpdated: 'Just now' } : n)
     }));
+  };
+
+  // Yellow Flash Highlights citation action trigger
+  const handleTriggerCitationHighlight = (chunkText: string) => {
+    setHighlightedChunkText(chunkText);
+    
+    // Find matching source
+    const matchedSource = state.sources.find(s => s.chunks.some(chk => chk.text === chunkText));
+    if (matchedSource) {
+      setSelectedSourceId(matchedSource.id);
+    }
+
+    // Auto clear flash after a few moments
+    setTimeout(() => {
+      setHighlightedChunkText(undefined);
+    }, 4500);
   };
 
   return (
@@ -185,9 +204,10 @@ export default function Index() {
         importDatabase={importDatabase}
       />
 
+      {/* Force rigid, fixed three-pane landscape columns above 1024px with overflow hidden */}
       <div className="flex-1 pt-[56px] flex overflow-hidden relative h-[calc(100vh-56px)]">
         
-        {/* Desktop Panel 1: Sources (Fixed to 22% on screen widths > 1024px) */}
+        {/* Left Pane (22% Width) */}
         <div className="hidden lg:block lg:w-[22%] h-full shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden">
           <SourcePanel
             sources={state.sources}
@@ -195,23 +215,22 @@ export default function Index() {
             onSelectSource={setSelectedSourceId}
             onAddSource={handleAddSource}
             onDeleteSource={handleDeleteSource}
-            onRenameSource={handleRenameSource}
             onToggleCheckSource={handleToggleCheckSource}
             onAutoLabelFolders={handleAutoLabelFolders}
             researchMode={state.researchMode}
             onChangeResearchMode={handleChangeResearchMode}
+            highlightedChunkText={highlightedChunkText}
           />
         </div>
 
-        {/* Desktop Panel 2: Workspace Panel (Fixed to 53% on screen widths > 1024px) */}
+        {/* Center Pane (53% Width) */}
         <div className="flex-1 lg:w-[53%] flex flex-col min-w-0 bg-white dark:bg-slate-900 relative h-full overflow-hidden">
           
-          {/* Responsive triggers for Mobile/Tablet */}
+          {/* Responsive triggers for Mobile view navigation */}
           <div className="lg:hidden p-3 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="rounded-full text-slate-600 bg-white border-slate-200 text-xs">
-                  <Files className="w-3.5 h-3.5 text-teal-600" />
                   Sources ({state.sources.length})
                 </Button>
               </SheetTrigger>
@@ -222,11 +241,11 @@ export default function Index() {
                   onSelectSource={setSelectedSourceId}
                   onAddSource={handleAddSource}
                   onDeleteSource={handleDeleteSource}
-                  onRenameSource={handleRenameSource}
                   onToggleCheckSource={handleToggleCheckSource}
                   onAutoLabelFolders={handleAutoLabelFolders}
                   researchMode={state.researchMode}
                   onChangeResearchMode={handleChangeResearchMode}
+                  highlightedChunkText={highlightedChunkText}
                 />
               </SheetContent>
             </Sheet>
@@ -238,7 +257,6 @@ export default function Index() {
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="rounded-full text-slate-600 bg-white border-slate-200 text-xs">
-                  <Headphones className="w-3.5 h-3.5 text-teal-600" />
                   Studio
                 </Button>
               </SheetTrigger>
@@ -271,11 +289,12 @@ export default function Index() {
                 if (addBtn) addBtn.click();
               }}
               isLoading={isLoading}
+              onTriggerCitationHighlight={handleTriggerCitationHighlight}
             />
           </div>
         </div>
 
-        {/* Desktop Panel 3: Audio Study Panel (Fixed to 25% on screen widths > 1024px) */}
+        {/* Right Pane (25% Width) */}
         <div className="hidden lg:block lg:w-[25%] h-full shrink-0 border-l border-slate-200 dark:border-slate-800 bg-[#FAF9F5] dark:bg-[#161616] overflow-hidden">
           <AudioStudyPanel
             onGenerateAudio={() => {}}
