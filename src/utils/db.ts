@@ -3,7 +3,7 @@
 import { Source } from '@/components/SourcePanel';
 import { Note, ChatMessage } from '@/components/WorkspacePanel';
 
-const STORAGE_KEY = 'free_notebook_lm_data_v1';
+const STORAGE_KEY = 'absolutely_free_notebook_lm_v2';
 
 export interface NotebookState {
   notebookTitle: string;
@@ -15,14 +15,14 @@ export interface NotebookState {
 }
 
 const DEFAULT_STATE: NotebookState = {
-  notebookTitle: "My Custom Study Notebook",
+  notebookTitle: "My Clean Study Notebook",
   sources: [],
   notes: [],
   messages: [
     {
       id: 'm-init',
       sender: 'ai',
-      text: "Welcome to your secure local Notebook! Please click '+ Add Source' on the left to upload any custom text documents, articles, transcripts, or specifications. All data is parsed and stored entirely inside your local browser sandbox.",
+      text: "Welcome to absolutelyfreenotebooklm.com! Start by uploading your files, links, or notes in the left pane. All processing and indexing are done securely and privately inside your web browser.",
       timestamp: 'Just now'
     }
   ],
@@ -55,35 +55,50 @@ export function saveNotebookState(state: NotebookState) {
   }
 }
 
-// Client-side heuristic parser to generate dynamic flashcards from any loaded source text
-export function generateDynamicFlashcards(sources: Source[]): Array<{ id: string; question: string; answer: string }> {
+// Generate dynamic co-host conversation script from active sources
+export function generateDynamicPodcastScript(sources: Source[]): string {
   const activeSources = sources.filter(s => s.checked !== false);
   if (activeSources.length === 0) {
     return [
-      {
-        id: 'no-source-1',
-        question: "How do I generate interactive flashcards?",
-        answer: "Please upload and check at least one source file in the left panel to automatically extract key concepts!"
-      }
-    ];
+      "Host 1: Oh wow, it looks like we don't have any documents loaded into our study engine yet.",
+      "Host 2: Right, exactly! We need the listener to upload some local files so we can dive deep."
+    ].join('\n');
+  }
+
+  const topic = activeSources[0].title;
+  const contentSnippet = activeSources[0].content.slice(0, 300).replace(/[^a-zA-Z0-9\s,.]/g, '');
+
+  return [
+    `Host 1: Welcome back to our research deep dive, today we are looking into a document titled ${topic}.`,
+    `Host 2: Oh wow, yeah, and honestly, reading through these materials is super interesting, especially the parts about ${contentSnippet.slice(0, 120)}...`,
+    `Host 1: Right! It really sets a solid foundation. But wait, tell me more about how that actually works in practice?`,
+    `Host 2: Exactly! The source explains that everything runs directly in the client sandbox with zero server latency.`,
+    `Host 1: Oh, that is wild. So it is completely private and secure?`,
+    `Host 2: Exactly, yes! No external APIs or trackers required. It's beautiful.`
+  ].join('\n');
+}
+
+// Generate dynamic flashcards
+export function generateDynamicFlashcards(sources: Source[]): Array<{ id: string; question: string; answer: string }> {
+  const activeSources = sources.filter(s => s.checked !== false);
+  if (activeSources.length === 0) {
+    return [];
   }
 
   const cards: Array<{ id: string; question: string; answer: string }> = [];
-  activeSources.forEach((src, sIdx) => {
+  activeSources.forEach((src) => {
     const sentences = src.content
       .split(/[.!?]+/)
       .map(s => s.trim())
       .filter(s => s.length > 25);
     
-    // Pick up to 3 interesting sentences to form flashcards
     const sampleSentences = sentences.slice(0, 3);
     sampleSentences.forEach((sentence, idx) => {
-      // Create a basic concept question
       const words = sentence.split(/\s+/);
       const subject = words.slice(0, 3).join(" ");
       cards.push({
         id: `card-${src.id}-${idx}`,
-        question: `Based on "${src.title}", what can you tell us about "${subject}..."?`,
+        question: `What details does "${src.title}" mention regarding "${subject}..."?`,
         answer: sentence + "."
       });
     });
@@ -92,7 +107,7 @@ export function generateDynamicFlashcards(sources: Source[]): Array<{ id: string
   return cards;
 }
 
-// Client-side heuristic parser to generate dynamic quiz questions
+// Generate dynamic quiz questions
 export interface QuizQuestion {
   question: string;
   options: Array<{ id: string; text: string }>;
@@ -102,16 +117,7 @@ export interface QuizQuestion {
 export function generateDynamicQuizzes(sources: Source[]): QuizQuestion[] {
   const activeSources = sources.filter(s => s.checked !== false);
   if (activeSources.length === 0) {
-    return [
-      {
-        question: "Are there any study documents active for your test?",
-        options: [
-          { id: 'a', text: "No, please upload source files first." },
-          { id: 'b', text: "Yes, but they are unchecked." }
-        ],
-        correct: 'a'
-      }
-    ];
+    return [];
   }
 
   const quizzes: QuizQuestion[] = [];
@@ -128,30 +134,21 @@ export function generateDynamicQuizzes(sources: Source[]): QuizQuestion[] {
       const answerSnippet = words.slice(Math.max(0, words.length - 8)).join(" ");
 
       quizzes.push({
-        question: `According to "${src.title}", complete this statement: "${keySnippet} ... ?"`,
+        question: `According to "${src.title}", what does the statement "${keySnippet}..." refer to?`,
         options: [
-          { id: 'a', text: `... ${answerSnippet}.` },
-          { id: 'b', text: "... is not mentioned in the context." },
-          { id: 'c', text: "... is fully deprecated in the specification." }
+          { id: 'a', text: `It leads directly to: ${answerSnippet}.` },
+          { id: 'b', text: "It is an unconfirmed or empty reference." },
+          { id: 'c', text: "It represents a deprecated parameter." }
         ],
         correct: 'a'
       });
     }
   });
 
-  return quizzes.length > 0 ? quizzes : [
-    {
-      question: "Are there any study documents active for your test?",
-      options: [
-        { id: 'a', text: "No, please upload source files first." },
-        { id: 'b', text: "Yes, but they are unchecked." }
-      ],
-      correct: 'a'
-    }
-  ];
+  return quizzes;
 }
 
-// Client-side heuristic parser to generate dynamic presentation slides
+// Generate dynamic presentation slides
 export interface Slide {
   title: string;
   text: string;
@@ -162,8 +159,8 @@ export function generateDynamicSlides(sources: Source[]): Slide[] {
   if (activeSources.length === 0) {
     return [
       {
-        title: "Welcome Slide",
-        text: "Please add your custom sources on the left. The slide presentation engine will automatically extract key concepts into a structured summary presentation!"
+        title: "Pristine Workspace",
+        text: "Your presentation deck is ready. Please ingest some sources in the left panel to populate slides automatically!"
       }
     ];
   }
@@ -173,21 +170,16 @@ export function generateDynamicSlides(sources: Source[]): Slide[] {
     const paragraphs = src.content
       .split(/\n+/)
       .map(p => p.trim())
-      .filter(p => p.length > 50);
+      .filter(p => p.length > 40);
 
     const slideContent = paragraphs.slice(0, 2);
     slideContent.forEach((para, idx) => {
       slides.push({
-        title: `${src.title} - Highlight Part ${idx + 1}`,
+        title: `${src.title} - Core Insight ${idx + 1}`,
         text: para.length > 180 ? para.slice(0, 180) + "..." : para
       });
     });
   });
 
-  return slides.length > 0 ? slides : [
-    {
-      title: "Active Document Summary",
-      text: `We have loaded your custom document "${activeSources[0].title}". Explore the interactive chat panel, study guides, or co-host podcast briefings to synthesize your data.`
-    }
-  ];
+  return slides;
 }
