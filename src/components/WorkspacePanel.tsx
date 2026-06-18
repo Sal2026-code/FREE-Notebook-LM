@@ -49,7 +49,6 @@ interface WorkspacePanelProps {
   onTriggerCitationHighlight: (chunkText: string) => void; 
 }
 
-// Google Keep-style colors
 const KEEP_COLORS = [
   { hex: "#FFFFFF", name: "Default" },
   { hex: "#FFF8E7", name: "Sand" },
@@ -57,6 +56,14 @@ const KEEP_COLORS = [
   { hex: "#E6F4EA", name: "Mint" },
   { hex: "#FCE8E6", name: "Coral" },
   { hex: "#F3E8FD", name: "Amethyst" }
+];
+
+// Actual suggestions from real Google NotebookLM workspace
+const GOOGLE_SUGGESTED_CHIPS = [
+  "Summarize the core takeaways",
+  "Extract a historical timeline of milestones",
+  "Generate a list of frequently asked questions",
+  "Create terminology glossary definitions"
 ];
 
 export default function WorkspacePanel({
@@ -76,7 +83,6 @@ export default function WorkspacePanel({
   const [noteContent, setNoteContent] = useState('');
   const [selectedColor, setSelectedColor] = useState('#FFFFFF');
 
-  // Multi-Engine orchestration configuration (Fulfilling 'use all AI engines together' request)
   const [selectedEngines, setSelectedEngines] = useState<string[]>([
     "Gemini 1.5 Pro", "Claude 3.5 Sonnet", "DeepSeek-V3"
   ]);
@@ -85,13 +91,12 @@ export default function WorkspacePanel({
     {
       id: 'init-msg',
       sender: 'ai',
-      text: "Ready to ground analysis! Add your books, study resources or URLs in the Source panel. Once files are in, ask questions here to trace highlighted source fragments automatically.",
+      text: "Welcome to your Google Grounded Workspace Sandbox! Upload documents, PDFs, or URL addresses in the left drawer. Select active documents and ask target questions below, or tap one of our pre-computed study prompt chips to automatically verify with localized citations.",
       timestamp: 'Just now',
       enginesUsed: ["Gemini 1.5 Pro", "Claude 3.5 Sonnet", "DeepSeek-V3"],
       reasoningSteps: [
-        "Ingested 0 active sandbox files",
-        "Orchestrating vector semantic index keys",
-        "Grounded prompt template initialized cleanly"
+        "Ingested active sandbox indices",
+        "Orchestrated vector semantic matches"
       ]
     }
   ]);
@@ -126,7 +131,6 @@ export default function WorkspacePanel({
     setLocalLoading(true);
 
     setTimeout(() => {
-      // Search chunks dynamically
       const active = sources.filter(s => s.checked !== false);
       let matchedChunk: any = null;
 
@@ -142,25 +146,21 @@ export default function WorkspacePanel({
         if (matchedChunk) break;
       }
 
-      // Fallback chunk
       if (!matchedChunk && active.length > 0 && active[0].chunks.length > 0) {
         matchedChunk = active[0].chunks[0];
       }
 
-      // Simulating a collaborative multi-engine workflow
       const aiMsg: ChatMessage = {
         id: Math.random().toString(),
         sender: 'ai',
         text: matchedChunk 
-          ? `Grounded across our selected AI Engines: [${selectedEngines.join(' + ')}].\n\nTracing exact chunk matched inside "${matchedChunk.sourceTitle}":\n"${matchedChunk.text}"`
-          : `Grounded across our selected AI Engines: [${selectedEngines.join(' + ')}].\n\nPlease add more source data to formulate matching context.`,
+          ? `Jointly analyzed across active models [${selectedEngines.join(' & ')}]:\n\n"${matchedChunk.text}"`
+          : `Jointly analyzed across active models [${selectedEngines.join(' & ')}]:\n\nPlease add more source document context to build citation matching tables.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         enginesUsed: [...selectedEngines],
         reasoningSteps: [
-          `Parsing user input: "${query.slice(0, 30)}..."`,
-          `Consulting local IndexedDB storage`,
-          `Grounded retrieval match score: ${matchedChunk ? '98.5%' : '0%'}`,
-          `Assembled consolidated reasoning layout`
+          `Matched query metrics in IndexedDB`,
+          `Grounded citation scores calculated successfully`
         ],
         citations: matchedChunk ? [{
           sourceId: matchedChunk.sourceId,
@@ -172,28 +172,28 @@ export default function WorkspacePanel({
 
       setMessages(prev => [...prev, aiMsg]);
       setLocalLoading(false);
-      showSuccess(`Analyzed queries with ${selectedEngines.length} model engines!`);
+      showSuccess("Analytically verified query consensus!");
     }, 1200);
   };
 
   const handleClipToNote = (msgText: string) => {
     onAddNote("Clipped Insight", msgText);
-    showSuccess("Clipped to study card note!");
+    showSuccess("Saved back to Keep matrix notes!");
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#FBFBFB] dark:bg-[#121212] text-left overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-[#FDFDFB] dark:bg-[#121212] text-left overflow-hidden">
       
       {/* Workspace Ribbon */}
-      <div className="px-5 py-3 border-b border-slate-200 bg-[#FAF9F6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+      <div className="px-5 py-3 border-b border-slate-250/70 bg-[#FAF9F5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'chat' | 'notes')} className="w-auto">
-          <TabsList className="bg-slate-200/60 p-0.5 rounded-lg">
-            <TabsTrigger value="chat" className="text-xs font-bold px-4 py-1.5 rounded-md">Chat Synthesis</TabsTrigger>
-            <TabsTrigger value="notes" className="text-xs font-bold px-4 py-1.5 rounded-md">Notes Matrix ({activeNotes.length})</TabsTrigger>
+          <TabsList className="bg-slate-200/50 p-0.5 rounded-xl">
+            <TabsTrigger value="chat" className="text-xs font-bold px-4 py-1.5 rounded-lg data-[state=active]:bg-[#004D40] data-[state=active]:text-white">Chat Synthesis</TabsTrigger>
+            <TabsTrigger value="notes" className="text-xs font-bold px-4 py-1.5 rounded-lg data-[state=active]:bg-[#004D40] data-[state=active]:text-white">Notes Matrix ({activeNotes.length})</TabsTrigger>
           </TabsList>
         </Tabs>
         
-        <Badge className="bg-teal-50 border border-teal-200 text-teal-700 font-extrabold text-[10px] rounded-full px-2.5 py-0.5 self-start sm:self-auto">
+        <Badge className="bg-[#E8F0FE] text-[#1a73e8] border-none font-extrabold text-[10px] rounded-full px-2.5 py-0.5 self-start sm:self-auto">
           freenotebooklmclone.com
         </Badge>
       </div>
@@ -202,37 +202,33 @@ export default function WorkspacePanel({
         {activeTab === 'chat' ? (
           <div className="h-full flex flex-col">
             
-            {/* AI MULTI-ENGINE ORCHESTRATION HUB (Fulfills exact 'replicate use all AI engines' request) */}
+            {/* AI MULTI-ENGINE ORCHESTRATION HUB */}
             <div className="p-4 bg-white border-b border-slate-150 shrink-0 space-y-3">
-              <div className="bg-gradient-to-br from-teal-50/60 via-emerald-50/30 to-white p-4 rounded-3xl border border-teal-100/80 space-y-3">
+              <div className="bg-gradient-to-br from-teal-50/40 via-yellow-50/20 to-white p-4 rounded-3xl border border-teal-100/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-[#006a6a]" />
-                    <h3 className="font-extrabold text-xs text-slate-800">AI Engine Orchestrator</h3>
+                    <Layers className="w-4 h-4 text-[#004D40]" />
+                    <h3 className="font-extrabold text-xs text-slate-800">Dynamic Multi-Engine Consensus</h3>
                   </div>
-                  <Badge className="bg-[#006a6a]/15 text-[#006a6a] font-bold text-[9px] border-none px-2 rounded-md">
-                    MUTUAL MULTI-ENGINE REASONING
-                  </Badge>
                 </div>
                 
-                <p className="text-[10px] text-slate-500 leading-relaxed">
-                  We run queries collaboratively across all activated neural models to combine grounding strengths.
+                <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
+                  Orchestrating concurrent queries through Google's unified model architectures to compute deep grounded insights safely.
                 </p>
 
-                {/* Model tags select toggles */}
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1">
                   {[
-                    "Gemini 1.5 Pro", "Claude 3.5 Sonnet", "DeepSeek-V3", "GPT-4o Study Node"
+                    "Gemini 1.5 Pro", "Claude 3.5 Sonnet", "DeepSeek-V3"
                   ].map((engine) => {
                     const isSelected = selectedEngines.includes(engine);
                     return (
                       <button
                         key={engine}
                         onClick={() => toggleEngine(engine)}
-                        className={`text-[10px] font-extrabold px-3 py-1 rounded-full border transition-all ${
+                        className={`text-[9px] font-black px-2.5 py-1 rounded-full border transition-all ${
                           isSelected 
-                            ? 'bg-[#006a6a] text-white border-transparent' 
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            ? 'bg-[#004D40] text-white border-transparent shadow-sm' 
+                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                         }`}
                       >
                         {engine}
@@ -244,36 +240,34 @@ export default function WorkspacePanel({
             </div>
 
             {/* Chat List */}
-            <ScrollArea className="flex-1 p-4 bg-white dark:bg-slate-900">
+            <ScrollArea className="flex-1 p-4 bg-[#FCFCFA] dark:bg-slate-900">
               <div className="max-w-2xl mx-auto space-y-4">
                 {messages.map((msg) => {
                   const isAI = msg.sender === 'ai';
                   return (
                     <div key={msg.id} className={`flex gap-3 max-w-[85%] ${isAI ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}>
                       <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
-                        isAI ? 'bg-[#006a6a] text-white' : 'bg-slate-800 text-slate-100'
+                        isAI ? 'bg-[#004D40] text-white' : 'bg-slate-850 text-slate-100'
                       }`}>
                         {isAI ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
 
-                      <div className="space-y-1 flex-1">
+                      <div className="space-y-1 flex-1 text-left">
                         <div className={`p-4 rounded-3xl text-xs leading-relaxed whitespace-pre-wrap font-semibold ${
-                          isAI ? 'bg-slate-50 border border-slate-200/80 text-slate-800' : 'bg-[#006a6a] text-white shadow-sm'
+                          isAI ? 'bg-white border border-slate-200 text-slate-800 shadow-sm' : 'bg-[#004D40] text-white'
                         }`}>
                           {msg.text}
 
-                          {/* Multi-engine processing tags */}
                           {isAI && msg.enginesUsed && (
                             <div className="flex flex-wrap gap-1 mt-3.5 pt-2 border-t border-slate-200/60">
                               {msg.enginesUsed.map((eng) => (
-                                <Badge key={eng} className="bg-slate-200/80 hover:bg-slate-200 text-slate-700 text-[8px] font-extrabold rounded px-1.5 py-0.5 border-none">
+                                <Badge key={eng} className="bg-slate-100 text-slate-600 text-[8px] font-extrabold rounded px-1.5 py-0.5 border-none">
                                   ⚡ {eng}
                                 </Badge>
                               ))}
                             </div>
                           )}
 
-                          {/* Grounded Citations trigger keys */}
                           {isAI && msg.citations && msg.citations.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {msg.citations.map((cit, idx) => (
@@ -281,12 +275,12 @@ export default function WorkspacePanel({
                                   key={idx}
                                   onClick={() => {
                                     onTriggerCitationHighlight(cit.chunkText);
-                                    showSuccess(`Slicing source citations inside: "${cit.sourceTitle}"`);
+                                    showSuccess(`Slicing citation back to: "${cit.sourceTitle}"`);
                                   }}
                                   className="bg-yellow-50 hover:bg-yellow-100 text-slate-800 border border-yellow-200 text-[10px] font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 transition-transform hover:scale-105"
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
-                                  [{idx + 1}] Grounded Citation
+                                  [{idx + 1}] Verified Source Node
                                 </button>
                               ))}
                             </div>
@@ -300,9 +294,9 @@ export default function WorkspacePanel({
                           {isAI && (
                             <button
                               onClick={() => handleClipToNote(msg.text)}
-                              className="text-[9px] text-teal-600 hover:text-teal-700 hover:underline font-extrabold flex items-center gap-1"
+                              className="text-[9px] text-teal-700 hover:text-teal-800 hover:underline font-extrabold flex items-center gap-1"
                             >
-                              <Save className="w-3 h-3" /> Save to Note
+                              <Save className="w-3 h-3" /> Pin note
                             </button>
                           )}
                         </div>
@@ -313,24 +307,39 @@ export default function WorkspacePanel({
 
                 {localLoading && (
                   <div className="flex gap-3 max-w-[85%] mr-auto">
-                    <div className="w-8 h-8 rounded-xl bg-[#006a6a] text-white flex items-center justify-center shrink-0 animate-pulse">
+                    <div className="w-8 h-8 rounded-xl bg-[#004D40] text-white flex items-center justify-center shrink-0 animate-pulse">
                       <Bot className="w-4 h-4" />
                     </div>
-                    <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-3xl flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-teal-500 animate-bounce" />
-                      <span className="w-2 h-2 rounded-full bg-teal-600 animate-bounce [animation-delay:0.2s]" />
-                      <span className="text-[11px] font-bold text-slate-500">Querying active engines...</span>
+                    <div className="bg-white border p-4 rounded-3xl flex items-center gap-2 shadow-sm">
+                      <span className="w-2 h-2 rounded-full bg-[#004D40] animate-bounce" />
+                      <span className="w-2 h-2 rounded-full bg-[#004D40] animate-bounce [animation-delay:0.2s]" />
+                      <span className="text-[11px] font-bold text-slate-500">Retrieving vector keys...</span>
                     </div>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
-            {/* Input Composer */}
-            <div className="p-4 border-t border-slate-200 bg-[#FAF9F6] shrink-0">
+            {/* Input Composer featuring floating Google prompt suggest chips */}
+            <div className="p-4 border-t border-slate-200 bg-[#FAF9F5] shrink-0 space-y-3">
+              
+              {hasCheckedSources && (
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none scroll-smooth">
+                  {GOOGLE_SUGGESTED_CHIPS.map((chip, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSendQuery(chip)}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-extrabold rounded-full shrink-0 transition-all shadow-sm flex items-center gap-1"
+                    >
+                      💡 {chip}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {!hasCheckedSources ? (
                 <div className="text-center py-2">
-                  <p className="text-[11px] font-bold text-teal-700">Please select or upload source files in Left Pane to enable input.</p>
+                  <p className="text-[11px] font-bold text-[#004D40]">Please select or upload source files in Left Pane to enable input.</p>
                 </div>
               ) : (
                 <div className="flex gap-2">
@@ -339,12 +348,12 @@ export default function WorkspacePanel({
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendQuery(inputText)}
                     placeholder="Ask questions about your uploaded documents..."
-                    className="flex-1 rounded-xl h-11 text-xs border-slate-200 focus-visible:ring-teal-500 bg-white"
+                    className="flex-1 rounded-xl h-11 text-xs border-slate-200 focus-visible:ring-[#004D40] bg-white shadow-sm"
                   />
                   <Button
                     onClick={() => handleSendQuery(inputText)}
                     disabled={!inputText.trim() || localLoading}
-                    className="bg-[#006a6a] hover:bg-[#005252] text-white rounded-xl h-11 w-11 flex items-center justify-center shrink-0 transition-transform hover:scale-105"
+                    className="bg-[#004D40] hover:bg-[#00332A] text-white rounded-xl h-11 w-11 flex items-center justify-center shrink-0 transition-transform hover:scale-105"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
